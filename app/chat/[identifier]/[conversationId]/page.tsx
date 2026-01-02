@@ -1,0 +1,555 @@
+'use client'
+
+import { useEffect, useRef, useState } from 'react'
+import { useParams } from 'next/navigation'
+import { useMessages, useSendMessage, useUpdateMessage, useDeleteMessage } from '@/lib/queries/messages'
+import { useConversation } from '@/lib/queries/conversations'
+import { useRealtimeMessages } from '@/lib/hooks/use-realtime-messages'
+import { checkAndSendAwayMessage } from '@/lib/utils/away-message'
+import { uploadImage } from '@/lib/utils/image-upload'
+import { format } from 'date-fns'
+import { HiReply, HiPencil, HiTrash, HiPhotograph, HiCheck, HiCheckCircle, HiArrowLeft, HiDotsVertical } from 'react-icons/hi'
+import { getBusinessByIdentifier } from '@/lib/queries/businesses'
+
+// Helper function to get initials from name or email
+function getInitials(name: string | null, email: string): string {
+  if (name) {
+    const parts = name.trim().split(/\s+/)
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    }
+    return name.substring(0, 2).toUpperCase()
+  }
+  // Fallback to email
+  const emailParts = email.split('@')[0]
+  if (emailParts.length >= 2) {
+    return emailParts.substring(0, 2).toUpperCase()
+  }
+  return emailParts.substring(0, 1).toUpperCase()
+}
+
+export default function ChatPage() {
+  const params = useParams()
+  const conversationId = params.conversationId as string
+  const identifier = params.identifier as string
+  const messagesQuery = useMessages(conversationId)
+  const { data: conversation } = useConversation(conversationId)
+  const sendMessage = useSendMessage()
+  const updateMessage = useUpdateMessage()
+  const deleteMessage = useDeleteMessage()
+  const [message, setMessage] = useState('')
+  const [sending, setSending] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [replyingTo, setReplyingTo] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editContent, setEditContent] = useState('')
+  const [business, setBusiness] = useState<any>(null)
+  const [contextMenu, setContextMenu] = useState<{
+    msgId: string
+    isCustomer: boolean
+    position: { x: number; y: number }
+  } | null>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Load business info
+  useEffect(() => {
+    const loadBusiness = async () => {
+      if (identifier) {
+        try {
+          const businessData = await getBusinessByIdentifier(identifier)
+          setBusiness(businessData)
+        } catch (err) {
+          console.error('Failed to load business:', err)
+        }
+      }
+    }
+    loadBusiness()
+  }, [identifier])
+
+  // Subscribe to realtime messages
+  useRealtimeMessages(conversationId)
+
+  const handleSend = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!message.trim() || sending || !conversation) return
+
+    setSending(true)
+    try {
+      await sendMessage.mutateAsync({
+        conversation_id: conversationId,
+        sender_type: 'customer',
+        sender_id: conversation.customer_email,
+        content: message.trim(),
+        image_url: null,
+        reply_to_id: replyingTo || null,
+      })
+      setMessage('')
+      setReplyingTo(null)
+
+      // Check and send away message if needed
+      if (conversation.business_id) {
+        await checkAndSendAwayMessage(conversation.business_id, conversationId)
+      }
+    } catch (err) {
+      console.error('Failed to send message:', err)
+    } finally {
+      setSending(false)
+    }
+  }
+
+  // Long press handler for mobile/touch devices
+  const handleLongPressStart = (e: React.TouchEvent, msgId: string, isCustomer: boolean) => {
+    e.preventDefault()
+    const touch = e.touches[0]
+    
+    longPressTimerRef.current = setTimeout(() => {
+      setContextMenu({
+        msgId,
+        isCustomer,
+        position: { x: touch.clientX, y: touch.clientY }
+      })
+      // Haptic feedback on mobile (if supported)
+      if (navigator.vibrate) {
+        navigator.vibrate(50)
+      }
+    }, 500) // 500ms long press
+  }
+
+  const handleLongPressEnd = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current)
+      longPressTimerRef.current = null
+    }
+  }
+
+  // Right-click handler for desktop
+  const handleRightClick = (e: React.MouseEvent, msgId: string, isCustomer: boolean) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setContextMenu({
+      msgId,
+      isCustomer,
+      position: { x: e.clientX, y: e.clientY }
+    })
+  }
+
+  const handleEdit = (msgId: string, currentContent: string) => {
+    setEditingId(msgId)
+    setEditContent(currentContent || '')
+  }
+
+  const handleSaveEdit = async (msgId: string) => {
+    if (!editContent.trim()) return
+
+    try {
+      await updateMessage.mutateAsync({
+        messageId: msgId,
+        updates: { content: editContent.trim() },
+      })
+      setEditingId(null)
+      setEditContent('')
+    } catch (err) {
+      console.error('Failed to edit message:', err)
+    }
+  }
+
+  const handleDelete = async (msgId: string) => {
+    if (!confirm('Are you sure you want to delete this message?')) return
+
+    try {
+      await deleteMessage.mutateAsync(msgId)
+    } catch (err) {
+      console.error('Failed to delete message:', err)
+    }
+  }
+
+  const closeContextMenu = () => {
+    setContextMenu(null)
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current)
+      longPressTimerRef.current = null
+    }
+  }
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current)
+      }
+    }
+  }, [])
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !conversation) return
+
+    setUploadingImage(true)
+    try {
+      const imageUrl = await uploadImage(file, conversation.business_id, 'images')
+      await sendMessage.mutateAsync({
+        conversation_id: conversationId,
+        sender_type: 'customer',
+        sender_id: conversation.customer_email,
+        content: null,
+        image_url: imageUrl,
+        reply_to_id: replyingTo || null,
+      })
+      setReplyingTo(null)
+
+      // Check and send away message if needed
+      if (conversation.business_id) {
+        await checkAndSendAwayMessage(conversation.business_id, conversationId)
+      }
+    } catch (err) {
+      console.error('Failed to upload image:', err)
+      alert('Failed to upload image')
+    } finally {
+      setUploadingImage(false)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
+  const allMessages = messagesQuery.data?.pages.flatMap((page) => page.data) || []
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (messagesEndRef.current && allMessages.length > 0 && messagesContainerRef.current) {
+      // Check if user is near bottom (within 200px) before auto-scrolling
+      const messagesContainer = messagesContainerRef.current
+      const isNearBottom = 
+        messagesContainer.scrollHeight - messagesContainer.scrollTop - messagesContainer.clientHeight < 200
+      if (isNearBottom) {
+        // Use a small delay to ensure DOM is updated
+        const timeoutId = setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+        }, 50)
+        return () => clearTimeout(timeoutId)
+      }
+    }
+  }, [allMessages.length])
+
+  const getReplyMessage = (replyToId: string) => {
+    return allMessages.find((m) => m.id === replyToId)
+  }
+
+  const businessName = business?.business_name || 'Business'
+  const businessEmail = business?.email || ''
+  const initials = getInitials(business?.business_name || null, businessEmail)
+
+  return (
+    <div className="flex h-screen flex-col bg-white dark:bg-gray-900">
+      {/* Header */}
+      <header className="border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => window.history.back()}
+            className="flex-shrink-0 rounded-full p-2 text-gray-600 hover:bg-gray-100 active:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors"
+          >
+            <HiArrowLeft className="text-xl" />
+          </button>
+          {/* Avatar */}
+          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center text-white text-sm font-medium">
+            {initials}
+          </div>
+          {/* Name and Email */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="text-base font-medium text-gray-900 dark:text-white truncate">
+                {businessName}
+              </h1>
+              <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+              {businessEmail}
+            </p>
+          </div>
+          {/* Menu */}
+          <button className="flex-shrink-0 rounded-full p-2 text-gray-600 hover:bg-gray-100 active:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors">
+            <HiDotsVertical className="text-xl" />
+          </button>
+        </div>
+      </header>
+
+      {/* Messages */}
+      <div
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto px-2 py-3 sm:px-4 bg-white dark:bg-gray-900"
+      >
+        {messagesQuery.isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-gray-500 dark:text-[#8696a0] text-sm">Loading messages...</div>
+          </div>
+        ) : allMessages.length === 0 ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-center text-gray-500 dark:text-[#8696a0] text-sm">
+              No messages yet. Start the conversation!
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-1 relative z-[1]">
+            {allMessages.map((msg) => {
+              const isCustomer = msg.sender_type === 'customer'
+              const isEditing = editingId === msg.id
+              const replyMessage = msg.reply_to_id ? getReplyMessage(msg.reply_to_id) : null
+              return (
+                <div
+                  key={msg.id}
+                  className={`flex ${isCustomer ? 'justify-end' : 'justify-start'} px-2`}
+                >
+                  <div className="relative max-w-[75%] sm:max-w-[65%]">
+                    {isEditing ? (
+                      <div className="rounded-2xl bg-white p-3 shadow-lg dark:bg-[#202c33] border border-gray-200/50 dark:border-gray-700/50">
+                        <textarea
+                          value={editContent}
+                          onChange={(e) => setEditContent(e.target.value)}
+                          className="w-full rounded-xl border border-gray-300 p-3 text-sm dark:border-gray-600 dark:bg-[#111b21] dark:text-[#e9edef] focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          rows={3}
+                          autoFocus
+                        />
+                        <div className="mt-3 flex gap-2">
+                          <button
+                            onClick={() => handleSaveEdit(msg.id)}
+                            className="flex-1 rounded-xl bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 active:bg-primary-800 transition-colors"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingId(null)
+                              setEditContent('')
+                            }}
+                            className="flex-1 rounded-xl bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 active:bg-gray-400 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        onContextMenu={(e) => handleRightClick(e, msg.id, isCustomer)}
+                        onTouchStart={(e) => handleLongPressStart(e, msg.id, isCustomer)}
+                        onTouchEnd={handleLongPressEnd}
+                        onTouchMove={handleLongPressEnd}
+                        className={`rounded-lg px-3 py-2 select-none ${
+                          isCustomer
+                            ? 'bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white'
+                            : 'bg-[#dcf8c6] text-gray-900'
+                        }`}
+                      >
+                      {replyMessage && (
+                        <div className={`mb-1.5 rounded-lg border-l-2 pl-2 pr-1.5 py-1 text-xs ${
+                          isCustomer 
+                            ? 'bg-gray-300/50 border-gray-400' 
+                            : 'bg-white/60 border-gray-600'
+                        }`}>
+                          <div className="font-medium opacity-90 mb-0.5 text-[10px]">
+                            {replyMessage.sender_type === 'customer' ? 'You' : 'Business'}
+                          </div>
+                          <div className="opacity-80 truncate text-[11px]">
+                            {replyMessage.content || 'Image'}
+                          </div>
+                        </div>
+                      )}
+                      {msg.image_url && (
+                        <div className="mb-1.5 -mx-1">
+                          <img
+                            src={msg.image_url}
+                            alt="Message attachment"
+                            className="max-w-full rounded-lg"
+                          />
+                        </div>
+                      )}
+                      {msg.content && <p className="whitespace-pre-wrap text-sm leading-[1.4]">{msg.content}</p>}
+                      <div className="mt-1 flex items-center justify-end gap-1 text-[11px] text-gray-500">
+                        <span>{format(new Date(msg.created_at), 'HH:mm')}</span>
+                        <HiCheck className="inline text-xs" />
+                      </div>
+                    </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
+
+        {/* Load more button */}
+        {messagesQuery.hasNextPage && (
+          <div className="flex justify-center py-4">
+            <button
+              onClick={() => messagesQuery.fetchNextPage()}
+              disabled={messagesQuery.isFetchingNextPage}
+              className="rounded-md bg-gray-200 px-4 py-2 text-sm text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 disabled:opacity-50"
+            >
+              {messagesQuery.isFetchingNextPage ? 'Loading...' : 'Load older messages'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <div
+          className="fixed inset-0 z-50"
+          onClick={closeContextMenu}
+          onTouchStart={(e) => {
+            // Only close if touch is on the backdrop, not on the menu
+            if (e.target === e.currentTarget) {
+              closeContextMenu()
+            }
+          }}
+        >
+          <div
+            className="absolute rounded-2xl bg-white dark:bg-[#233138] shadow-2xl border border-gray-200/50 dark:border-gray-700/50 min-w-[200px] overflow-hidden"
+            style={{
+              left: `${Math.min(contextMenu.position.x, typeof window !== 'undefined' ? window.innerWidth - 220 : contextMenu.position.x)}px`,
+              top: `${Math.max(contextMenu.position.y - 10, 60)}px`,
+              transform: 'translateY(-100%)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+          >
+            <div className="py-1">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setReplyingTo(contextMenu.msgId)
+                  closeContextMenu()
+                }}
+                onTouchEnd={(e) => {
+                  e.stopPropagation()
+                  setReplyingTo(contextMenu.msgId)
+                  closeContextMenu()
+                }}
+                className="w-full px-4 py-2.5 text-left text-sm text-gray-900 dark:text-[#e9edef] hover:bg-gray-100 dark:hover:bg-[#182229] transition-colors flex items-center gap-3"
+              >
+                <HiReply className="text-base" />
+                <span>Reply</span>
+              </button>
+              {contextMenu.isCustomer && (
+                <>
+                  <div className="border-t border-gray-200 dark:border-gray-700 my-0.5"></div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      const msg = allMessages.find((m) => m.id === contextMenu.msgId)
+                      if (msg) {
+                        handleEdit(msg.id, msg.content || '')
+                        closeContextMenu()
+                      }
+                    }}
+                    onTouchEnd={(e) => {
+                      e.stopPropagation()
+                      const msg = allMessages.find((m) => m.id === contextMenu.msgId)
+                      if (msg) {
+                        handleEdit(msg.id, msg.content || '')
+                        closeContextMenu()
+                      }
+                    }}
+                    className="w-full px-4 py-2.5 text-left text-sm text-gray-900 dark:text-[#e9edef] hover:bg-gray-100 dark:hover:bg-[#182229] transition-colors flex items-center gap-3"
+                  >
+                    <HiPencil className="text-base" />
+                    <span>Edit</span>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDelete(contextMenu.msgId)
+                      closeContextMenu()
+                    }}
+                    onTouchEnd={(e) => {
+                      e.stopPropagation()
+                      handleDelete(contextMenu.msgId)
+                      closeContextMenu()
+                    }}
+                    className="w-full px-4 py-2.5 text-left text-sm text-red-500 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-[#182229] transition-colors flex items-center gap-3"
+                  >
+                    <HiTrash className="text-base" />
+                    <span>Delete</span>
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Input */}
+      <form
+        onSubmit={handleSend}
+        className="border-t border-gray-200 bg-white px-3 py-3 dark:border-gray-700 dark:bg-gray-800 sm:px-4"
+      >
+        {replyingTo && (() => {
+          const replyMsg = getReplyMessage(replyingTo)
+          return replyMsg ? (
+            <div className="mb-2 flex items-center justify-between rounded-lg bg-gray-100/80 p-2 dark:bg-[#111b21] border-l-2 border-primary-500">
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-medium text-gray-700 dark:text-[#e9edef] mb-0.5">
+                  Replying to {replyMsg.sender_type === 'customer' ? 'yourself' : 'business'}
+                </div>
+                <div className="text-xs text-gray-500 dark:text-[#8696a0] truncate">
+                  {replyMsg.content || 'Image'}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReplyingTo(null)}
+                className="ml-2 flex-shrink-0 rounded-full p-1 text-gray-500 hover:bg-gray-200 hover:text-gray-700 dark:text-[#8696a0] dark:hover:bg-[#111b21] dark:hover:text-[#e9edef] transition-colors"
+              >
+                <span className="text-lg leading-none">×</span>
+              </button>
+            </div>
+          ) : null
+        })()}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleImageSelect}
+          className="hidden"
+        />
+        <div className="flex gap-2 items-center">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadingImage || sending}
+            className="flex-shrink-0 rounded-full p-2.5 text-gray-500 hover:bg-gray-100 active:bg-gray-200 dark:text-[#8696a0] dark:hover:bg-[#111b21] disabled:opacity-50 transition-colors"
+          >
+            {uploadingImage ? (
+              <span className="text-xs">...</span>
+            ) : (
+              <HiPhotograph className="text-lg" />
+            )}
+          </button>
+          <input
+            type="text"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder={replyingTo ? "Type your reply..." : "Type a message..."}
+            className="flex-1 rounded-full border-0 bg-gray-100 px-4 py-2.5 text-sm focus:outline-none focus:ring-0 dark:bg-[#2a3942] dark:text-[#e9edef] dark:placeholder:text-[#8696a0] disabled:opacity-50"
+            disabled={sending || uploadingImage}
+          />
+          <button
+            type="submit"
+            disabled={!message.trim() || sending || uploadingImage}
+            className="flex-shrink-0 rounded-full bg-primary-600 p-2.5 text-white hover:bg-primary-700 active:bg-primary-800 focus:outline-none disabled:opacity-50 transition-colors"
+          >
+            {sending ? (
+              <span className="text-xs">...</span>
+            ) : (
+              <HiCheck className="text-lg" />
+            )}
+          </button>
+        </div>
+      </form>
+    </div>
+  )
+}
+
