@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { HiStar } from 'react-icons/hi'
+import { HiStar, HiEye, HiEyeOff } from 'react-icons/hi'
+import { ThemeToggle } from '@/components/theme-toggle'
+import { useToast } from '@/lib/hooks/use-toast'
 
 interface Review {
   name: string
@@ -64,10 +66,11 @@ export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [currentReviewIndex, setCurrentReviewIndex] = useState(0)
   const supabase = createClient()
+  const { showError, showSuccess } = useToast()
 
   // Rotate reviews every 3 seconds
   useEffect(() => {
@@ -81,7 +84,6 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    setError(null)
 
     try {
       const { data, error: authError } = await supabase.auth.signInWithPassword({
@@ -92,11 +94,12 @@ export default function LoginPage() {
       if (authError) throw authError
 
       if (data.user) {
+        showSuccess('Login successful!')
         router.push('/dashboard')
         router.refresh()
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to login')
+      showError(err.message || 'Failed to login. Please check your credentials.')
     } finally {
       setLoading(false)
     }
@@ -106,15 +109,19 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Theme Toggle - Top Right */}
+      <div className="fixed top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
       {/* Left Side - Login Form */}
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md space-y-8">
           <div className="flex justify-center mb-4">
             <Image
-              src="/logo-with-text.png"
+              src="/logo.png"
               alt="Leenk"
-              width={180}
-              height={54}
+              width={64}
+              height={64}
               priority
               className="dark:opacity-90"
             />
@@ -128,11 +135,6 @@ export default function LoginPage() {
             </p>
           </div>
           <form className="space-y-6" onSubmit={handleLogin}>
-            {error && (
-              <div className="rounded-xl bg-red-50 p-4 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-                <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
-              </div>
-            )}
             <div className="space-y-4">
               <div>
                 <label
@@ -159,16 +161,30 @@ export default function LoginPage() {
                 >
                   Password
                 </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-                  placeholder="••••••••"
-                />
+                <div className="relative">
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="block w-full rounded-xl border border-gray-300 bg-white px-4 py-3 pr-12 text-gray-900 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? (
+                      <HiEyeOff className="text-xl" />
+                    ) : (
+                      <HiEye className="text-xl" />
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
             <div>

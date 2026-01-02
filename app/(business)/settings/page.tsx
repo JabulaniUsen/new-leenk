@@ -9,6 +9,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { uploadImage } from '@/lib/utils/image-upload'
 import { getBusinessLogoUrl } from '@/lib/utils/storage'
 import { HiUser, HiUsers, HiSpeakerphone, HiCollection, HiLink, HiCamera, HiDocumentDuplicate, HiLocationMarker, HiPhone, HiOfficeBuilding, HiPaperAirplane } from 'react-icons/hi'
+import { useToast } from '@/lib/hooks/use-toast'
 
 // Helper function to get initials from name or email
 function getInitials(name: string | null, email: string): string {
@@ -32,6 +33,7 @@ export default function SettingsPage() {
   const queryClient = useQueryClient()
   const { data: business, isLoading } = useBusiness()
   const updateBusiness = useUpdateBusiness()
+  const { showSuccess, showError } = useToast()
   const [businessName, setBusinessName] = useState('')
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
@@ -71,10 +73,10 @@ export default function SettingsPage() {
         phone: phone || null,
         address: address || null,
       })
-      alert('Settings saved successfully!')
+      showSuccess('Settings saved successfully!')
     } catch (err) {
       console.error('Failed to save settings:', err)
-      alert('Failed to save settings')
+      showError('Failed to save settings. Please try again.')
     } finally {
       setSaving(false)
     }
@@ -135,10 +137,10 @@ export default function SettingsPage() {
         business_logo: fileName,
       })
       
-      alert('Logo uploaded successfully!')
+      showSuccess('Logo uploaded successfully!')
     } catch (err) {
       console.error('Failed to upload logo:', err)
-      alert('Failed to upload logo')
+      showError('Failed to upload logo. Please try again.')
     } finally {
       setUploadingLogo(false)
       if (logoInputRef.current) {
@@ -154,9 +156,10 @@ export default function SettingsPage() {
       await updateBusiness.mutateAsync({
         business_logo: null,
       })
+      showSuccess('Logo removed successfully!')
     } catch (err) {
       console.error('Failed to remove logo:', err)
-      alert('Failed to remove logo')
+      showError('Failed to remove logo. Please try again.')
     }
   }
 
@@ -178,10 +181,10 @@ export default function SettingsPage() {
       queryClient.invalidateQueries({ queryKey: ['conversations'] })
       queryClient.invalidateQueries({ queryKey: ['messages'] })
       
-      alert('Broadcast message sent successfully!')
+      showSuccess('Broadcast message sent successfully!')
     } catch (err) {
       console.error('Failed to broadcast:', err)
-      alert('Failed to send broadcast message')
+      showError('Failed to send broadcast message. Please try again.')
     } finally {
       setBroadcasting(false)
     }
@@ -197,10 +200,10 @@ export default function SettingsPage() {
         away_message: awayMessage.trim() || null,
         away_message_enabled: awayMessageEnabled,
       })
-      alert('Away message settings saved successfully!')
+      showSuccess('Away message settings saved successfully!')
     } catch (err) {
       console.error('Failed to save away message:', err)
-      alert('Failed to save away message settings')
+      showError('Failed to save away message settings. Please try again.')
     } finally {
       setSavingAwayMessage(false)
     }

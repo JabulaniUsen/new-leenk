@@ -10,6 +10,12 @@ import { useRealtimeMessages } from '@/lib/hooks/use-realtime-messages'
 import { uploadImage } from '@/lib/utils/image-upload'
 import { format } from 'date-fns'
 import { HiReply, HiPencil, HiTrash, HiPhotograph, HiCheck, HiCheckCircle, HiArrowLeft, HiDotsVertical } from 'react-icons/hi'
+import { PWAInstallPrompt } from '@/components/pwa-install-prompt'
+import { parseLinks, extractFirstUrl } from '@/lib/utils/link-parser'
+import { LinkPreview } from '@/components/link-preview'
+import { useToast } from '@/lib/hooks/use-toast'
+import { ImageEditor } from '@/components/image-editor'
+import { ImagePreviewModal } from '@/components/image-preview-modal'
 
 // Helper function to get initials from name or email
 function getInitials(name: string | null, email: string): string {
@@ -40,9 +46,12 @@ export default function BusinessChatPage() {
   const updateMessage = useUpdateMessage()
   const deleteMessage = useDeleteMessage()
   const markAsRead = useMarkMessagesAsRead()
+  const { showSuccess, showError } = useToast()
   const [message, setMessage] = useState('')
   const [sending, setSending] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [imageToEdit, setImageToEdit] = useState<File | null>(null)
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
@@ -102,8 +111,10 @@ export default function BusinessChatPage() {
       })
       setMessage('')
       setReplyingTo(null)
+      showSuccess('Message sent')
     } catch (err) {
       console.error('Failed to send message:', err)
+      showError('Failed to send message. Please try again.')
     } finally {
       setSending(false)
     }
@@ -181,8 +192,10 @@ export default function BusinessChatPage() {
       })
       setEditingId(null)
       setEditContent('')
+      showSuccess('Message updated')
     } catch (err) {
       console.error('Failed to edit message:', err)
+      showError('Failed to edit message. Please try again.')
     }
   }
 
@@ -191,35 +204,45 @@ export default function BusinessChatPage() {
 
     try {
       await deleteMessage.mutateAsync(msgId)
+      showSuccess('Message deleted')
     } catch (err) {
       console.error('Failed to delete message:', err)
+      showError('Failed to delete message. Please try again.')
     }
   }
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file || !business) return
-
-    setUploadingImage(true)
-    try {
-      const imageUrl = await uploadImage(file, business.id, 'images')
-      await sendMessage.mutateAsync({
-        conversation_id: conversationId,
-        sender_type: 'business',
-        sender_id: business.id,
-        content: null,
-        image_url: imageUrl,
-        reply_to_id: replyingTo || null,
-      })
-      setReplyingTo(null)
-    } catch (err) {
-      console.error('Failed to upload image:', err)
-      alert('Failed to upload image')
-    } finally {
-      setUploadingImage(false)
+    if (!file || !business) {
+      // Reset input value if no file selected
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
       }
+      return
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      showError('Please select an image file')
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+      return
+    }
+
+    // Validate file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+      showError('Image size must be less than 10MB')
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+      return
+    }
+
+    // Show image editor instead of uploading directly
+    setImageToEdit(file)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
     }
   }
 
@@ -228,35 +251,35 @@ export default function BusinessChatPage() {
   const initials = getInitials(conversation?.customer_name || null, customerEmail)
 
   return (
-    <div className="flex h-screen flex-col bg-white dark:bg-gray-900">
+    <div className="flex h-full flex-col bg-white dark:bg-gray-900">
       {/* Header */}
-      <header className="border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
-        <div className="flex items-center gap-3">
+      <header className="border-b border-gray-200 bg-white px-2 sm:px-4 py-2 sm:py-3 dark:border-gray-700 dark:bg-gray-800">
+        <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={() => router.push('/dashboard')}
-            className="flex-shrink-0 rounded-full p-2 text-gray-600 hover:bg-gray-100 active:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors"
+            className="flex-shrink-0 rounded-full p-1.5 sm:p-2 text-gray-600 hover:bg-gray-100 active:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors"
           >
-            <HiArrowLeft className="text-xl" />
+            <HiArrowLeft className="text-lg sm:text-xl" />
           </button>
           {/* Avatar */}
-          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center text-white text-sm font-medium">
+          <div className="flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-primary-600 flex items-center justify-center text-white text-xs sm:text-sm font-medium">
             {initials}
           </div>
           {/* Name and Email */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="text-base font-medium text-gray-900 dark:text-white truncate">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <h1 className="text-sm sm:text-base font-medium text-gray-900 dark:text-white truncate">
                 {conversation?.customer_name || 'Customer'}
               </h1>
-              <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
+              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-yellow-400"></div>
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+            <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 truncate">
               {conversation?.customer_email}
             </p>
           </div>
           {/* Menu */}
-          <button className="flex-shrink-0 rounded-full p-2 text-gray-600 hover:bg-gray-100 active:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors">
-            <HiDotsVertical className="text-xl" />
+          <button className="flex-shrink-0 rounded-full p-1.5 sm:p-2 text-gray-600 hover:bg-gray-100 active:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors">
+            <HiDotsVertical className="text-lg sm:text-xl" />
           </button>
         </div>
       </header>
@@ -285,20 +308,20 @@ export default function BusinessChatPage() {
                   key={msg.id}
                   className={`flex ${isBusiness ? 'justify-end' : 'justify-start'} px-2`}
                 >
-                  <div className="relative max-w-[75%] sm:max-w-[65%]">
+                  <div className="relative max-w-[80%] sm:max-w-[75%] md:max-w-[65%]">
                     {isEditing ? (
-                      <div className="rounded-2xl bg-white p-3 shadow-lg dark:bg-[#202c33] border border-gray-200/50 dark:border-gray-700/50">
+                      <div className="rounded-2xl bg-white p-2 sm:p-3 shadow-lg dark:bg-[#202c33] border border-gray-200/50 dark:border-gray-700/50">
                         <textarea
                           value={editContent}
                           onChange={(e) => setEditContent(e.target.value)}
-                          className="w-full rounded-xl border border-gray-300 p-3 text-sm dark:border-gray-600 dark:bg-[#111b21] dark:text-[#e9edef] focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          className="w-full rounded-xl border border-gray-300 p-2 sm:p-3 text-xs sm:text-sm dark:border-gray-600 dark:bg-[#111b21] dark:text-[#e9edef] focus:outline-none focus:ring-2 focus:ring-primary-500"
                           rows={3}
                           autoFocus
                         />
-                        <div className="mt-3 flex gap-2">
+                        <div className="mt-2 sm:mt-3 flex gap-2">
                           <button
                             onClick={() => handleSaveEdit(msg.id)}
-                            className="flex-1 rounded-xl bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 active:bg-primary-800 transition-colors"
+                            className="flex-1 rounded-xl bg-primary-600 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white hover:bg-primary-700 active:bg-primary-800 transition-colors"
                           >
                             Save
                           </button>
@@ -307,7 +330,7 @@ export default function BusinessChatPage() {
                               setEditingId(null)
                               setEditContent('')
                             }}
-                            className="flex-1 rounded-xl bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 active:bg-gray-400 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors"
+                            className="flex-1 rounded-xl bg-gray-200 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-300 active:bg-gray-400 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors"
                           >
                             Cancel
                           </button>
@@ -319,51 +342,61 @@ export default function BusinessChatPage() {
                         onTouchStart={(e) => handleLongPressStart(e, msg.id, isBusiness)}
                         onTouchEnd={handleLongPressEnd}
                         onTouchMove={handleLongPressEnd}
-                        className={`rounded-lg px-3 py-2 select-none ${
+                        className={`rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 select-none ${
                           isBusiness
                             ? 'bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white'
                             : 'bg-[#dcf8c6] text-gray-900'
                         }`}
                       >
                         {replyMessage && (
-                          <div className={`mb-1.5 rounded-lg border-l-2 pl-2 pr-1.5 py-1 text-xs ${
+                          <div className={`mb-1 sm:mb-1.5 rounded-lg border-l-2 pl-1.5 sm:pl-2 pr-1 sm:pr-1.5 py-0.5 sm:py-1 text-[10px] sm:text-xs ${
                             isBusiness 
                               ? 'bg-gray-300/50 border-gray-400' 
                               : 'bg-white/60 border-gray-600'
                           }`}>
-                            <div className="font-medium opacity-90 mb-0.5 text-[10px]">
+                            <div className="font-medium opacity-90 mb-0.5 text-[9px] sm:text-[10px]">
                               {replyMessage.sender_type === 'business' ? 'You' : 'Customer'}
                             </div>
-                            <div className="opacity-80 truncate text-[11px]">
+                            <div className="opacity-80 truncate text-[10px] sm:text-[11px]">
                               {replyMessage.content || 'Image'}
                             </div>
                           </div>
                         )}
                         {msg.image_url && (
-                          <div className="mb-1.5 -mx-1">
+                          <div className="mb-1 sm:mb-1.5 -mx-0.5 sm:-mx-1">
                             <img
                               src={msg.image_url}
                               alt="Message attachment"
-                              className="max-w-full rounded-lg"
+                              className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                              onClick={() => setPreviewImageUrl(msg.image_url!)}
                             />
                           </div>
                         )}
-                        {msg.content && <p className="whitespace-pre-wrap text-sm leading-[1.4]">{msg.content}</p>}
-                        <div className="mt-1 flex items-center justify-end gap-1 text-[11px] text-gray-500">
+                        {msg.content && (
+                          <>
+                            <p className="whitespace-pre-wrap text-xs sm:text-sm leading-[1.4] break-words">
+                              {parseLinks(msg.content)}
+                            </p>
+                            {extractFirstUrl(msg.content) && (
+                              <LinkPreview url={extractFirstUrl(msg.content)!} />
+                            )}
+                          </>
+                        )}
+                        <div className="mt-0.5 sm:mt-1 flex items-center justify-end gap-0.5 sm:gap-1 text-[9px] sm:text-[11px] text-gray-500">
                           <span>{format(new Date(msg.created_at), 'HH:mm')}</span>
                           {isBusiness && (
                             <span className="ml-0.5">
                               {msg.status === 'read' ? (
-                                <span className="text-blue-500">Seen</span>
+                                <span className="text-blue-500 text-[9px] sm:text-[10px]">Seen</span>
                               ) : msg.status === 'delivered' ? (
-                                <HiCheckCircle className="inline text-xs text-blue-500" />
+                                <HiCheckCircle className="inline text-[9px] sm:text-xs text-blue-500" />
                               ) : (
-                                <HiCheck className="inline text-xs" />
+                                <HiCheck className="inline text-[9px] sm:text-xs" />
                               )}
                             </span>
                           )}
                           {!isBusiness && (
-                            <HiCheck className="inline text-xs" />
+                            <HiCheck className="inline text-[9px] sm:text-xs" />
                           )}
                         </div>
                       </div>
@@ -485,58 +518,116 @@ export default function BusinessChatPage() {
         {replyingTo && (() => {
           const replyMsg = getReplyMessage(replyingTo)
           return replyMsg ? (
-            <div className="mb-2 flex items-center justify-between rounded-lg bg-gray-100 p-2 dark:bg-gray-700">
-              <div className="flex-1">
-                <div className="text-xs font-semibold text-gray-600 dark:text-gray-400">
+            <div className="mb-2 flex items-center justify-between rounded-lg bg-gray-100/80 p-2 dark:bg-[#111b21] border-l-2 border-primary-500">
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-medium text-gray-700 dark:text-[#e9edef] mb-0.5">
                   Replying to {replyMsg.sender_type === 'business' ? 'yourself' : 'customer'}
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-500 truncate">
+                <div className="text-xs text-gray-500 dark:text-[#8696a0] truncate">
                   {replyMsg.content || 'Image'}
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setReplyingTo(null)}
-                className="ml-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                className="ml-2 flex-shrink-0 rounded-full p-1 text-gray-500 hover:bg-gray-200 hover:text-gray-700 dark:text-[#8696a0] dark:hover:bg-[#111b21] dark:hover:text-[#e9edef] transition-colors"
               >
-                ×
+                <span className="text-lg leading-none">×</span>
               </button>
             </div>
           ) : null
         })()}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleImageSelect}
-          className="hidden"
-        />
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageSelect}
+            className="hidden"
+          />
           <button
             type="button"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              fileInputRef.current?.click()
+            }}
             disabled={uploadingImage || sending}
-            className="rounded-md bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 disabled:opacity-50"
+            className="flex-shrink-0 rounded-full p-2.5 text-gray-500 hover:bg-gray-100 active:bg-gray-200 dark:text-[#8696a0] dark:hover:bg-[#111b21] disabled:opacity-50 transition-colors"
           >
-            {uploadingImage ? 'Uploading...' : '📷'}
+            {uploadingImage ? (
+              <span className="text-xs">...</span>
+            ) : (
+              <HiPhotograph className="text-lg" />
+            )}
           </button>
           <input
             type="text"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder={replyingTo ? "Type your reply..." : "Type a message..."}
-            className="flex-1 rounded-md border border-gray-300 px-4 py-2 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+            className="flex-1 rounded-full border-0 bg-gray-100 px-4 py-2.5 text-sm focus:outline-none focus:ring-0 dark:bg-[#2a3942] dark:text-[#e9edef] dark:placeholder:text-[#8696a0] disabled:opacity-50"
             disabled={sending || uploadingImage}
           />
           <button
             type="submit"
             disabled={!message.trim() || sending || uploadingImage}
-            className="rounded-md bg-primary-600 px-6 py-2 text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50"
+            className="flex-shrink-0 rounded-full bg-primary-600 p-2.5 text-white hover:bg-primary-700 active:bg-primary-800 focus:outline-none disabled:opacity-50 transition-colors"
           >
-            {sending ? 'Sending...' : 'Send'}
+            {sending ? (
+              <span className="text-xs">...</span>
+            ) : (
+              <HiCheck className="text-lg" />
+            )}
           </button>
         </div>
       </form>
+
+      {/* PWA Install Prompt */}
+      <PWAInstallPrompt />
+
+      {/* Image Editor Modal */}
+      {imageToEdit && business && (
+        <ImageEditor
+          imageFile={imageToEdit}
+          onSave={async (editedFile) => {
+            setImageToEdit(null)
+            setUploadingImage(true)
+            try {
+              const imageUrl = await uploadImage(editedFile, business.id, 'images')
+              await sendMessage.mutateAsync({
+                conversation_id: conversationId,
+                sender_type: 'business',
+                sender_id: business.id,
+                content: null,
+                image_url: imageUrl,
+                reply_to_id: replyingTo || null,
+              })
+              setReplyingTo(null)
+              showSuccess('Image sent')
+            } catch (err) {
+              console.error('Failed to upload image:', err)
+              showError('Failed to upload image. Please try again.')
+            } finally {
+              setUploadingImage(false)
+            }
+          }}
+          onCancel={() => {
+            setImageToEdit(null)
+            if (fileInputRef.current) {
+              fileInputRef.current.value = ''
+            }
+          }}
+        />
+      )}
+
+      {/* Image Preview Modal */}
+      {previewImageUrl && (
+        <ImagePreviewModal
+          imageUrl={previewImageUrl}
+          onClose={() => setPreviewImageUrl(null)}
+        />
+      )}
     </div>
   )
 }

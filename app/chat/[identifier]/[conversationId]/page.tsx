@@ -10,6 +10,12 @@ import { uploadImage } from '@/lib/utils/image-upload'
 import { format } from 'date-fns'
 import { HiReply, HiPencil, HiTrash, HiPhotograph, HiCheck, HiCheckCircle, HiArrowLeft, HiDotsVertical } from 'react-icons/hi'
 import { getBusinessByIdentifier } from '@/lib/queries/businesses'
+import { PWAInstallPrompt } from '@/components/pwa-install-prompt'
+import { parseLinks, extractFirstUrl } from '@/lib/utils/link-parser'
+import { LinkPreview } from '@/components/link-preview'
+import { useToast } from '@/lib/hooks/use-toast'
+import { ImageEditor } from '@/components/image-editor'
+import { ImagePreviewModal } from '@/components/image-preview-modal'
 
 // Helper function to get initials from name or email
 function getInitials(name: string | null, email: string): string {
@@ -37,9 +43,12 @@ export default function ChatPage() {
   const sendMessage = useSendMessage()
   const updateMessage = useUpdateMessage()
   const deleteMessage = useDeleteMessage()
+  const { showSuccess, showError } = useToast()
   const [message, setMessage] = useState('')
   const [sending, setSending] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [imageToEdit, setImageToEdit] = useState<File | null>(null)
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null)
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
@@ -93,8 +102,10 @@ export default function ChatPage() {
       if (conversation.business_id) {
         await checkAndSendAwayMessage(conversation.business_id, conversationId)
       }
+      showSuccess('Message sent')
     } catch (err) {
       console.error('Failed to send message:', err)
+      showError('Failed to send message. Please try again.')
     } finally {
       setSending(false)
     }
@@ -151,8 +162,10 @@ export default function ChatPage() {
       })
       setEditingId(null)
       setEditContent('')
+      showSuccess('Message updated')
     } catch (err) {
       console.error('Failed to edit message:', err)
+      showError('Failed to edit message. Please try again.')
     }
   }
 
@@ -161,8 +174,10 @@ export default function ChatPage() {
 
     try {
       await deleteMessage.mutateAsync(msgId)
+      showSuccess('Message deleted')
     } catch (err) {
       console.error('Failed to delete message:', err)
+      showError('Failed to delete message. Please try again.')
     }
   }
 
@@ -185,33 +200,36 @@ export default function ChatPage() {
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file || !conversation) return
-
-    setUploadingImage(true)
-    try {
-      const imageUrl = await uploadImage(file, conversation.business_id, 'images')
-      await sendMessage.mutateAsync({
-        conversation_id: conversationId,
-        sender_type: 'customer',
-        sender_id: conversation.customer_email,
-        content: null,
-        image_url: imageUrl,
-        reply_to_id: replyingTo || null,
-      })
-      setReplyingTo(null)
-
-      // Check and send away message if needed
-      if (conversation.business_id) {
-        await checkAndSendAwayMessage(conversation.business_id, conversationId)
-      }
-    } catch (err) {
-      console.error('Failed to upload image:', err)
-      alert('Failed to upload image')
-    } finally {
-      setUploadingImage(false)
+    if (!file || !conversation) {
+      // Reset input value if no file selected
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
       }
+      return
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      showError('Please select an image file')
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+      return
+    }
+
+    // Validate file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+      showError('Image size must be less than 10MB')
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+      return
+    }
+
+    // Show image editor instead of uploading directly
+    setImageToEdit(file)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
     }
   }
 
@@ -243,7 +261,7 @@ export default function ChatPage() {
   const initials = getInitials(business?.business_name || null, businessEmail)
 
   return (
-    <div className="flex h-screen flex-col bg-white dark:bg-gray-900">
+    <div className="flex h-[100vh] flex-col bg-white dark:bg-gray-900">
       {/* Header */}
       <header className="border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
         <div className="flex items-center gap-3">
@@ -302,20 +320,20 @@ export default function ChatPage() {
                   key={msg.id}
                   className={`flex ${isCustomer ? 'justify-end' : 'justify-start'} px-2`}
                 >
-                  <div className="relative max-w-[75%] sm:max-w-[65%]">
+                  <div className="relative max-w-[80%] sm:max-w-[75%] md:max-w-[65%]">
                     {isEditing ? (
-                      <div className="rounded-2xl bg-white p-3 shadow-lg dark:bg-[#202c33] border border-gray-200/50 dark:border-gray-700/50">
+                      <div className="rounded-2xl bg-white p-2 sm:p-3 shadow-lg dark:bg-[#202c33] border border-gray-200/50 dark:border-gray-700/50">
                         <textarea
                           value={editContent}
                           onChange={(e) => setEditContent(e.target.value)}
-                          className="w-full rounded-xl border border-gray-300 p-3 text-sm dark:border-gray-600 dark:bg-[#111b21] dark:text-[#e9edef] focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          className="w-full rounded-xl border border-gray-300 p-2 sm:p-3 text-xs sm:text-sm dark:border-gray-600 dark:bg-[#111b21] dark:text-[#e9edef] focus:outline-none focus:ring-2 focus:ring-primary-500"
                           rows={3}
                           autoFocus
                         />
-                        <div className="mt-3 flex gap-2">
+                        <div className="mt-2 sm:mt-3 flex gap-2">
                           <button
                             onClick={() => handleSaveEdit(msg.id)}
-                            className="flex-1 rounded-xl bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 active:bg-primary-800 transition-colors"
+                            className="flex-1 rounded-xl bg-primary-600 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white hover:bg-primary-700 active:bg-primary-800 transition-colors"
                           >
                             Save
                           </button>
@@ -324,7 +342,7 @@ export default function ChatPage() {
                               setEditingId(null)
                               setEditContent('')
                             }}
-                            className="flex-1 rounded-xl bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 active:bg-gray-400 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors"
+                            className="flex-1 rounded-xl bg-gray-200 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-300 active:bg-gray-400 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors"
                           >
                             Cancel
                           </button>
@@ -336,39 +354,49 @@ export default function ChatPage() {
                         onTouchStart={(e) => handleLongPressStart(e, msg.id, isCustomer)}
                         onTouchEnd={handleLongPressEnd}
                         onTouchMove={handleLongPressEnd}
-                        className={`rounded-lg px-3 py-2 select-none ${
+                        className={`rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 select-none ${
                           isCustomer
                             ? 'bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white'
                             : 'bg-[#dcf8c6] text-gray-900'
                         }`}
                       >
                       {replyMessage && (
-                        <div className={`mb-1.5 rounded-lg border-l-2 pl-2 pr-1.5 py-1 text-xs ${
+                        <div className={`mb-1 sm:mb-1.5 rounded-lg border-l-2 pl-1.5 sm:pl-2 pr-1 sm:pr-1.5 py-0.5 sm:py-1 text-[10px] sm:text-xs ${
                           isCustomer 
                             ? 'bg-gray-300/50 border-gray-400' 
                             : 'bg-white/60 border-gray-600'
                         }`}>
-                          <div className="font-medium opacity-90 mb-0.5 text-[10px]">
+                          <div className="font-medium opacity-90 mb-0.5 text-[9px] sm:text-[10px]">
                             {replyMessage.sender_type === 'customer' ? 'You' : 'Business'}
                           </div>
-                          <div className="opacity-80 truncate text-[11px]">
+                          <div className="opacity-80 truncate text-[10px] sm:text-[11px]">
                             {replyMessage.content || 'Image'}
                           </div>
                         </div>
                       )}
                       {msg.image_url && (
-                        <div className="mb-1.5 -mx-1">
+                        <div className="mb-1 sm:mb-1.5 -mx-0.5 sm:-mx-1">
                           <img
                             src={msg.image_url}
                             alt="Message attachment"
-                            className="max-w-full rounded-lg"
+                            className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => setPreviewImageUrl(msg.image_url!)}
                           />
                         </div>
                       )}
-                      {msg.content && <p className="whitespace-pre-wrap text-sm leading-[1.4]">{msg.content}</p>}
-                      <div className="mt-1 flex items-center justify-end gap-1 text-[11px] text-gray-500">
+                      {msg.content && (
+                        <>
+                          <p className="whitespace-pre-wrap text-xs sm:text-sm leading-[1.4] break-words">
+                            {parseLinks(msg.content)}
+                          </p>
+                          {extractFirstUrl(msg.content) && (
+                            <LinkPreview url={extractFirstUrl(msg.content)!} />
+                          )}
+                        </>
+                      )}
+                      <div className="mt-0.5 sm:mt-1 flex items-center justify-end gap-0.5 sm:gap-1 text-[9px] sm:text-[11px] text-gray-500">
                         <span>{format(new Date(msg.created_at), 'HH:mm')}</span>
-                        <HiCheck className="inline text-xs" />
+                        <HiCheck className="inline text-[9px] sm:text-xs" />
                       </div>
                     </div>
                     )}
@@ -508,17 +536,21 @@ export default function ChatPage() {
             </div>
           ) : null
         })()}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleImageSelect}
-          className="hidden"
-        />
         <div className="flex gap-2 items-center">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageSelect}
+            className="hidden"
+          />
           <button
             type="button"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              fileInputRef.current?.click()
+            }}
             disabled={uploadingImage || sending}
             className="flex-shrink-0 rounded-full p-2.5 text-gray-500 hover:bg-gray-100 active:bg-gray-200 dark:text-[#8696a0] dark:hover:bg-[#111b21] disabled:opacity-50 transition-colors"
           >
@@ -549,6 +581,57 @@ export default function ChatPage() {
           </button>
         </div>
       </form>
+
+      {/* PWA Install Prompt */}
+      <PWAInstallPrompt />
+
+      {/* Image Editor Modal */}
+      {imageToEdit && conversation && (
+        <ImageEditor
+          imageFile={imageToEdit}
+          onSave={async (editedFile) => {
+            setImageToEdit(null)
+            setUploadingImage(true)
+            try {
+              const imageUrl = await uploadImage(editedFile, conversation.business_id, 'images')
+              await sendMessage.mutateAsync({
+                conversation_id: conversationId,
+                sender_type: 'customer',
+                sender_id: conversation.customer_email,
+                content: null,
+                image_url: imageUrl,
+                reply_to_id: replyingTo || null,
+              })
+              setReplyingTo(null)
+
+              // Check and send away message if needed
+              if (conversation.business_id) {
+                await checkAndSendAwayMessage(conversation.business_id, conversationId)
+              }
+              showSuccess('Image sent')
+            } catch (err) {
+              console.error('Failed to upload image:', err)
+              showError('Failed to upload image. Please try again.')
+            } finally {
+              setUploadingImage(false)
+            }
+          }}
+          onCancel={() => {
+            setImageToEdit(null)
+            if (fileInputRef.current) {
+              fileInputRef.current.value = ''
+            }
+          }}
+        />
+      )}
+
+      {/* Image Preview Modal */}
+      {previewImageUrl && (
+        <ImagePreviewModal
+          imageUrl={previewImageUrl}
+          onClose={() => setPreviewImageUrl(null)}
+        />
+      )}
     </div>
   )
 }

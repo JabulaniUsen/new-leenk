@@ -160,7 +160,7 @@ export default function DashboardPage() {
                   return (
                     <div
                       key={conversation.id}
-                      className={`group relative flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-gray-800 ${
+                      className={`group relative flex items-center gap-2 sm:gap-3 px-2 sm:px-4 py-2 sm:py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-b border-gray-100 dark:border-gray-800 ${
                         hasUnread ? 'bg-gray-50/50 dark:bg-gray-800/50' : ''
                       }`}
                       onTouchStart={(e) => handleTouchStart(e, conversation.id)}
@@ -169,17 +169,17 @@ export default function DashboardPage() {
                     >
                       <Link
                         href={`/dashboard/${conversation.id}`}
-                        className="flex items-center gap-3 flex-1 min-w-0"
+                        className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0"
                       >
                         {/* Avatar */}
-                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center text-white text-sm font-medium">
+                        <div className="flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-primary-600 flex items-center justify-center text-white text-xs sm:text-sm font-medium">
                           {initials}
                         </div>
 
                         {/* Content */}
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <h3 className={`text-sm truncate ${
+                          <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5">
+                            <h3 className={`text-xs sm:text-sm truncate ${
                               hasUnread 
                                 ? 'font-bold text-gray-900 dark:text-white' 
                                 : 'font-semibold text-gray-900 dark:text-white'
@@ -187,14 +187,14 @@ export default function DashboardPage() {
                               {displayName}
                             </h3>
                             {conversation.pinned && (
-                              <HiBookmark className="text-primary-600 text-sm flex-shrink-0" />
+                              <HiBookmark className="text-primary-600 text-xs sm:text-sm flex-shrink-0" />
                             )}
                           </div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                        <p className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 truncate">
                           {conversation.customer_email}
                         </p>
                         {messagePreview ? (
-                          <p className={`text-sm mt-1 truncate ${
+                          <p className={`text-xs sm:text-sm mt-0.5 sm:mt-1 truncate ${
                             hasUnread 
                               ? 'text-gray-900 dark:text-gray-200 font-medium' 
                               : 'text-gray-700 dark:text-gray-300'
@@ -202,20 +202,20 @@ export default function DashboardPage() {
                             {messagePreview}
                           </p>
                         ) : (
-                          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1 italic">
+                          <p className="text-xs sm:text-sm text-gray-400 dark:text-gray-500 mt-0.5 sm:mt-1 italic">
                             No messages yet
                           </p>
                         )}
                         </div>
 
                         {/* Unread count and timestamp */}
-                        <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
+                        <div className="flex-shrink-0 flex flex-col items-end gap-1 sm:gap-1.5">
                           {unreadCount > 0 && (
-                            <div className="min-w-[24px] h-6 px-1.5 rounded-full bg-primary-600 flex items-center justify-center text-white text-xs font-semibold">
+                            <div className="min-w-[20px] sm:min-w-[24px] h-5 sm:h-6 px-1 sm:px-1.5 rounded-full bg-primary-600 flex items-center justify-center text-white text-[10px] sm:text-xs font-semibold">
                               {unreadCount > 99 ? '99+' : unreadCount}
                             </div>
                           )}
-                          <span className={`text-xs whitespace-nowrap ${
+                          <span className={`text-[10px] sm:text-xs whitespace-nowrap ${
                             hasUnread 
                               ? 'text-gray-600 dark:text-gray-300 font-medium' 
                               : 'text-gray-500 dark:text-gray-400'

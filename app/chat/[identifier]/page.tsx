@@ -6,6 +6,7 @@ import { getBusinessByIdentifier } from '@/lib/queries/businesses'
 import { useFindOrCreateConversation, checkConversationExists } from '@/lib/queries/conversations'
 import { getBusinessLogoUrl } from '@/lib/utils/storage'
 import type { Database } from '@/lib/types/database'
+import { useToast } from '@/lib/hooks/use-toast'
 
 type Business = Database['public']['Tables']['businesses']['Row']
 
@@ -22,20 +23,20 @@ export default function CustomerChatPage() {
   const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(true)
   const [checking, setChecking] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const findOrCreateConversation = useFindOrCreateConversation()
+  const { showError } = useToast()
 
   useEffect(() => {
     const loadBusiness = async () => {
       try {
         const businessData = await getBusinessByIdentifier(identifier)
         if (!businessData) {
-          setError('Business not found')
+          showError('Business not found')
           return
         }
         setBusiness(businessData)
       } catch (err: any) {
-        setError(err.message || 'Failed to load business')
+        showError(err.message || 'Failed to load business')
       } finally {
         setLoading(false)
       }
@@ -48,7 +49,6 @@ export default function CustomerChatPage() {
     if (!business || !email) return
 
     setChecking(true)
-    setError(null)
     try {
       // Check if conversation exists
       const exists = await checkConversationExists(business.id, email)
@@ -66,7 +66,7 @@ export default function CustomerChatPage() {
         setStep('name')
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to check conversation')
+      showError(err.message || 'Failed to check conversation. Please try again.')
     } finally {
       setChecking(false)
     }
@@ -86,7 +86,7 @@ export default function CustomerChatPage() {
 
       router.push(`/chat/${identifier}/${conversation.id}`)
     } catch (err: any) {
-      setError(err.message || 'Failed to start conversation')
+      showError(err.message || 'Failed to start conversation. Please try again.')
       setLoading(false)
     }
   }
@@ -104,14 +104,14 @@ export default function CustomerChatPage() {
     )
   }
 
-  if (error || !business) {
+  if (!business) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
             Business Not Found
           </h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">{error}</p>
+          <p className="mt-2 text-gray-600 dark:text-gray-400">The business you're looking for could not be found.</p>
         </div>
       </div>
     )
@@ -137,12 +137,6 @@ export default function CustomerChatPage() {
               : 'Welcome! Please enter your name to get started'}
           </p>
         </div>
-
-        {error && (
-          <div className="mt-4 rounded-md bg-red-50 p-4 dark:bg-red-900/20">
-            <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
-          </div>
-        )}
 
         {step === 'email' && (
           <form className="mt-8 space-y-6" onSubmit={handleEmailSubmit}>

@@ -155,21 +155,21 @@ export default function BusinessLayout({ children }: { children: React.ReactNode
       {/* Main Content Area */}
       <div className="flex flex-1 flex-col overflow-hidden md:ml-72">
         {/* Top Header */}
-        <header className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800 shadow-sm">
-          <div className="flex items-center gap-4">
+        <header className="flex items-center justify-between border-b border-gray-200 bg-white px-2 sm:px-4 py-2 sm:py-3 dark:border-gray-700 dark:bg-gray-800 shadow-sm">
+          <div className="flex items-center gap-2 sm:gap-4">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg dark:text-gray-400 dark:hover:bg-gray-700 transition-colors md:hidden"
+              className="p-1.5 sm:p-2 text-gray-600 hover:bg-gray-100 rounded-lg dark:text-gray-400 dark:hover:bg-gray-700 transition-colors md:hidden"
             >
-              <HiMenu className="text-xl" />
+              <HiMenu className="text-lg sm:text-xl" />
             </button>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <Image
                 src="/logo.png"
                 alt="Leenk"
-                width={32}
-                height={32}
-                className="dark:opacity-90"
+                width={24}
+                height={24}
+                className="sm:w-8 sm:h-8 dark:opacity-90"
               />
               <div className="hidden sm:block">
                 <div className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -181,15 +181,15 @@ export default function BusinessLayout({ children }: { children: React.ReactNode
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {logoUrl ? (
               <img
                 src={logoUrl}
                 alt="Profile"
-                className="h-10 w-10 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
+                className="h-8 w-8 sm:h-10 sm:w-10 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
               />
             ) : (
-              <div className="h-10 w-10 rounded-full bg-primary-600 flex items-center justify-center text-white text-sm font-semibold">
+              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-primary-600 flex items-center justify-center text-white text-xs sm:text-sm font-semibold">
                 {initials}
               </div>
             )}

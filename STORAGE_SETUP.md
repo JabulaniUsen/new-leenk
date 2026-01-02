@@ -64,24 +64,38 @@ ON CONFLICT (id) DO NOTHING;
 After creating the buckets, make sure the storage policies are set up. Run this SQL:
 
 ```sql
--- Images Storage Policies
-CREATE POLICY IF NOT EXISTS "Anyone can read images"
+-- ============================================
+-- STORAGE POLICIES FOR IMAGES BUCKET
+-- ============================================
+
+-- Drop existing policies first
+DROP POLICY IF EXISTS "Anyone can read images" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can upload images" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can update their images" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can delete their images" ON storage.objects;
+DROP POLICY IF EXISTS "Public can upload images" ON storage.objects;
+
+-- Allow anyone to read images (public bucket)
+CREATE POLICY "Anyone can read images"
 ON storage.objects FOR SELECT
 TO public
 USING (bucket_id = 'images');
 
-CREATE POLICY IF NOT EXISTS "Authenticated users can upload images"
+-- Allow anyone to upload images (customers are unauthenticated)
+CREATE POLICY "Public can upload images"
 ON storage.objects FOR INSERT
-TO authenticated
+TO public
 WITH CHECK (bucket_id = 'images');
 
-CREATE POLICY IF NOT EXISTS "Authenticated users can update their images"
+-- Allow authenticated users to update images
+CREATE POLICY "Authenticated users can update images"
 ON storage.objects FOR UPDATE
 TO authenticated
 USING (bucket_id = 'images')
 WITH CHECK (bucket_id = 'images');
 
-CREATE POLICY IF NOT EXISTS "Authenticated users can delete their images"
+-- Allow authenticated users to delete images
+CREATE POLICY "Authenticated users can delete images"
 ON storage.objects FOR DELETE
 TO authenticated
 USING (bucket_id = 'images');
