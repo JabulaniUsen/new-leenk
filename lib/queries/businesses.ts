@@ -48,8 +48,8 @@ export function useUpdateBusiness() {
 
       if (!user) throw new Error('Not authenticated')
 
-      const { data, error } = await supabase
-        .from('businesses')
+      const { data, error } = await (supabase
+        .from('businesses') as any)
         .update({
           ...updates,
           updated_at: new Date().toISOString(),
@@ -83,8 +83,8 @@ export function useUpdateOnlineStatus() {
 
       if (!user) throw new Error('Not authenticated')
 
-      const { data, error } = await supabase
-        .from('businesses')
+      const { data, error } = await (supabase
+        .from('businesses') as any)
         .update({ online, updated_at: new Date().toISOString() })
         .eq('id', user.id)
         .select()

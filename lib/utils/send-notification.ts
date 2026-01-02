@@ -82,8 +82,12 @@ export async function sendBroadcastEmailNotifications(
 
     if (!conversations) return
 
+    // Type assertion needed because select with specific columns doesn't infer types correctly
+    type ConversationData = { id: string; customer_email: string; customer_name: string | null }
+    const conversationsData = conversations as ConversationData[]
+
     // Send email to each customer
-    const emailPromises = conversations.map((conv) =>
+    const emailPromises = conversationsData.map((conv) =>
       fetch('/api/send-email', {
         method: 'POST',
         headers: {

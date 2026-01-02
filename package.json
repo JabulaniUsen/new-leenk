@@ -9,27 +9,29 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.1.0",
+    "@supabase/supabase-js": "^2.39.0",
+    "@tanstack/react-query": "^5.17.0",
+    "date-fns": "^3.0.0",
     "next": "^14.2.0",
+    "next-themes": "^0.2.1",
+    "nitro": "3.0.1-alpha.1",
+    "nodemailer": "^6.9.7",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    "@supabase/supabase-js": "^2.39.0",
-    "@supabase/ssr": "^0.1.0",
-    "@tanstack/react-query": "^5.17.0",
-    "next-themes": "^0.2.1",
-    "date-fns": "^3.0.0",
-    "nodemailer": "^6.9.7",
     "react-icons": "^5.0.0"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.17.1",
+    "@tanstack/react-query-devtools": "^5.17.0",
     "@types/node": "^20.11.0",
+    "@types/nodemailer": "^6.4.14",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
-    "typescript": "^5.3.0",
-    "tailwindcss": "^3.4.0",
-    "postcss": "^8.4.0",
     "autoprefixer": "^10.4.0",
-    "@tanstack/react-query-devtools": "^5.17.0",
-    "@types/nodemailer": "^6.4.14"
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.3.0",
+    "wrangler": "^4.54.0"
   }
 }
-

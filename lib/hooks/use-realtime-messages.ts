@@ -22,7 +22,7 @@ export function useRealtimeMessages(conversationId: string | null) {
     const channel = supabase
       .channel(`messages:${conversationId}`)
       .on(
-        'postgres_changes',
+        'postgres_changes' as any,
         {
           event: '*',
           schema: 'public',

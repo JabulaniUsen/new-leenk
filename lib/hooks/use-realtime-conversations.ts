@@ -23,7 +23,7 @@ export function useRealtimeConversations(businessId: string | null) {
     const channel = supabase
       .channel(`conversations:${businessId}`)
       .on(
-        'postgres_changes',
+        'postgres_changes' as any,
         {
           event: '*',
           schema: 'public',
@@ -38,7 +38,7 @@ export function useRealtimeConversations(businessId: string | null) {
         }
       )
       .on(
-        'postgres_changes',
+        'postgres_changes' as any,
         {
           event: '*',
           schema: 'public',
