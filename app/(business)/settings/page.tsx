@@ -8,7 +8,7 @@ import { useBusiness, useUpdateBusiness } from '@/lib/queries/businesses'
 import { useQueryClient } from '@tanstack/react-query'
 import { uploadImage } from '@/lib/utils/image-upload'
 import { getBusinessLogoUrl } from '@/lib/utils/storage'
-import { HiUser, HiUsers, HiSpeakerphone, HiCollection, HiLink, HiCamera, HiDocumentDuplicate, HiLocationMarker, HiPhone, HiOfficeBuilding, HiPaperAirplane } from 'react-icons/hi'
+import { HiUser, HiUsers, HiSpeakerphone, HiCollection, HiLink, HiCamera, HiDocumentDuplicate, HiLocationMarker, HiPhone, HiOfficeBuilding, HiPaperAirplane, HiTrash, HiRefresh } from 'react-icons/hi'
 import { useToast } from '@/lib/hooks/use-toast'
 
 // Helper function to get initials from name or email
@@ -342,18 +342,25 @@ export default function SettingsPage() {
                     type="button"
                     onClick={() => logoInputRef.current?.click()}
                     disabled={uploadingLogo}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium disabled:opacity-50 transition-colors"
+                    className="p-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 disabled:opacity-50 transition-colors"
+                    aria-label={business.business_logo ? 'Change logo' : 'Upload logo'}
+                    title={business.business_logo ? 'Change logo' : 'Upload logo'}
                   >
-                    <HiCamera className="text-lg" />
-                    <span>{business.business_logo ? 'Change' : 'Upload'}</span>
+                    {business.business_logo ? (
+                      <HiRefresh className="text-xl" />
+                    ) : (
+                      <HiCamera className="text-xl" />
+                    )}
                   </button>
                   {business.business_logo && (
                     <button
                       type="button"
                       onClick={handleRemoveLogo}
-                      className="px-4 py-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium transition-colors"
+                      className="p-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 transition-colors"
+                      aria-label="Remove logo"
+                      title="Remove logo"
                     >
-                      Remove
+                      <HiTrash className="text-xl" />
                     </button>
                   )}
                 </div>
@@ -442,14 +449,15 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={handleCopyLink}
-                className={`flex items-center gap-2 px-5 py-3 rounded-lg font-semibold text-sm transition-all shadow-md ${
+                className={`p-3 rounded-lg transition-all shadow-md ${
                   copied
                     ? 'bg-green-600 text-white shadow-green-600/20'
                     : 'bg-primary-600 text-white hover:bg-primary-700 shadow-primary-600/20'
                 }`}
+                aria-label={copied ? 'Copied!' : 'Copy link'}
+                title={copied ? 'Copied!' : 'Copy link'}
               >
-                <HiDocumentDuplicate className="text-lg" />
-                <span>{copied ? 'Copied!' : 'Copy'}</span>
+                <HiDocumentDuplicate className="text-xl" />
               </button>
             </div>
             <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
