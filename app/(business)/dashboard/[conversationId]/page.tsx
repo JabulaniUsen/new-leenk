@@ -111,7 +111,6 @@ export default function BusinessChatPage() {
       })
       setMessage('')
       setReplyingTo(null)
-      showSuccess('Message sent')
     } catch (err) {
       console.error('Failed to send message:', err)
       showError('Failed to send message. Please try again.')
@@ -192,7 +191,6 @@ export default function BusinessChatPage() {
       })
       setEditingId(null)
       setEditContent('')
-      showSuccess('Message updated')
     } catch (err) {
       console.error('Failed to edit message:', err)
       showError('Failed to edit message. Please try again.')

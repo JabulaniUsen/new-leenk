@@ -86,7 +86,7 @@ function ToastContainer({
   removeToast: (id: string) => void
 }) {
   return (
-    <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none max-w-sm w-full sm:max-w-md">
+    <div className="fixed top-4 right-4 z-[100] flex flex-col gap-3 pointer-events-none max-w-sm w-full sm:max-w-md">
       {toasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} onRemove={removeToast} />
       ))}
@@ -98,9 +98,9 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
   const getIcon = () => {
     switch (toast.type) {
       case 'success':
-        return <HiCheckCircle className="text-xl text-green-500" />
+        return <HiCheckCircle className="text-2xl text-white" />
       case 'error':
-        return <HiXCircle className="text-xl text-red-500" />
+        return <HiXCircle className="text-2xl text-white" />
       default:
         return null
     }
@@ -109,25 +109,44 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
   const getStyles = () => {
     switch (toast.type) {
       case 'success':
-        return 'bg-green-50 dark:bg-green-900 border-green-200 dark:border-green-700 text-green-800 dark:text-green-100'
+        return {
+          container: 'bg-gradient-to-r from-green-500 to-green-600 dark:from-green-600 dark:to-green-700 shadow-lg shadow-green-500/30 dark:shadow-green-600/30',
+          iconBg: 'bg-white/20',
+          text: 'text-white',
+          close: 'hover:bg-white/20 text-white'
+        }
       case 'error':
-        return 'bg-red-50 dark:bg-red-900 border-red-200 dark:border-red-700 text-red-800 dark:text-red-100'
+        return {
+          container: 'bg-gradient-to-r from-red-500 to-red-600 dark:from-red-600 dark:to-red-700 shadow-lg shadow-red-500/30 dark:shadow-red-600/30',
+          iconBg: 'bg-white/20',
+          text: 'text-white',
+          close: 'hover:bg-white/20 text-white'
+        }
       default:
-        return 'bg-blue-50 dark:bg-blue-900 border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-100'
+        return {
+          container: 'bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 shadow-lg shadow-blue-500/30 dark:shadow-blue-600/30',
+          iconBg: 'bg-white/20',
+          text: 'text-white',
+          close: 'hover:bg-white/20 text-white'
+        }
     }
   }
 
+  const styles = getStyles()
+
   return (
     <div
-      className={`rounded-xl border-2 shadow-lg dark:shadow-2xl p-4 flex items-start gap-3 animate-slide-in pointer-events-auto ${getStyles()}`}
+      className={`rounded-2xl ${styles.container} p-4 flex items-start gap-3 animate-slide-in pointer-events-auto backdrop-blur-sm border border-white/20`}
     >
-      <div className="flex-shrink-0 mt-0.5">{getIcon()}</div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium break-words">{toast.message}</p>
+      <div className={`flex-shrink-0 rounded-full p-2 ${styles.iconBg}`}>
+        {getIcon()}
+      </div>
+      <div className="flex-1 min-w-0 pt-0.5">
+        <p className={`text-sm font-semibold break-words ${styles.text}`}>{toast.message}</p>
       </div>
       <button
         onClick={() => onRemove(toast.id)}
-        className="flex-shrink-0 rounded-full p-1 hover:bg-black/10 dark:hover:bg-white/20 transition-colors"
+        className={`flex-shrink-0 rounded-full p-1.5 transition-colors ${styles.close}`}
         aria-label="Close notification"
       >
         <HiX className="text-lg" />

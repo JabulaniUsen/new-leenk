@@ -102,7 +102,6 @@ export default function ChatPage() {
       if (conversation.business_id) {
         await checkAndSendAwayMessage(conversation.business_id, conversationId)
       }
-      showSuccess('Message sent')
     } catch (err) {
       console.error('Failed to send message:', err)
       showError('Failed to send message. Please try again.')
@@ -162,7 +161,6 @@ export default function ChatPage() {
       })
       setEditingId(null)
       setEditContent('')
-      showSuccess('Message updated')
     } catch (err) {
       console.error('Failed to edit message:', err)
       showError('Failed to edit message. Please try again.')
