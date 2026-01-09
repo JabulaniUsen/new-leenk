@@ -20,11 +20,27 @@ export default function CustomerChatPage() {
   const [step, setStep] = useState<Step>('email')
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
-  const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(true)
   const [checking, setChecking] = useState(false)
   const findOrCreateConversation = useFindOrCreateConversation()
   const { showError } = useToast()
+
+  // Load email from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedEmail = localStorage.getItem('customer_email')
+      if (savedEmail) {
+        setEmail(savedEmail)
+      }
+    }
+  }, [])
+
+  // Save email to localStorage when it changes
+  useEffect(() => {
+    if (email && typeof window !== 'undefined') {
+      localStorage.setItem('customer_email', email)
+    }
+  }, [email])
 
   useEffect(() => {
     const loadBusiness = async () => {
@@ -81,7 +97,6 @@ export default function CustomerChatPage() {
         businessId: business.id,
         customerEmail: email,
         customerName: name || undefined,
-        customerPhone: phone || undefined,
       })
 
       router.push(`/chat/${identifier}/${conversation.id}`)
@@ -196,31 +211,12 @@ export default function CustomerChatPage() {
                 This is your first time chatting with us. Please enter your name to get started.
               </p>
             </div>
-            <div>
-              <label
-                htmlFor="phone"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Phone (optional)
-              </label>
-              <input
-                id="phone"
-                name="phone"
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                placeholder="+1234567890"
-                disabled={loading}
-              />
-            </div>
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => {
                   setStep('email')
                   setName('')
-                  setPhone('')
                 }}
                 className="flex-1 rounded-md border border-gray-300 bg-white px-4 py-2 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
                 disabled={loading}
