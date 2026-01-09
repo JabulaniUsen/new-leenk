@@ -8,7 +8,7 @@ import { useRealtimeMessages } from '@/lib/hooks/use-realtime-messages'
 import { checkAndSendAwayMessage } from '@/lib/utils/away-message'
 import { uploadImage } from '@/lib/utils/image-upload'
 import { format } from 'date-fns'
-import { HiReply, HiPencil, HiTrash, HiPhotograph, HiCheck, HiCheckCircle, HiArrowLeft, HiDotsVertical } from 'react-icons/hi'
+import { HiReply, HiPencil, HiTrash, HiPhotograph, HiCheck, HiArrowLeft, HiDotsVertical } from 'react-icons/hi'
 import { getBusinessByIdentifier } from '@/lib/queries/businesses'
 import { PWAInstallPrompt } from '@/components/pwa-install-prompt'
 import { parseLinks, extractFirstUrl } from '@/lib/utils/link-parser'
@@ -275,11 +275,14 @@ export default function ChatPage() {
           </div>
           {/* Name and Email */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col">
               <h1 className="text-base font-medium text-gray-900 dark:text-white truncate">
                 {businessName}
               </h1>
-              <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
+              <div className="flex items-center gap-1">
+                <p className="text-xs text-gray-500 dark:text-[#8696a0]">Online</p>
+                <div className="w-2 h-2 rounded-full bg-green-400"></div>
+              </div>
             </div>
           </div>
           {/* Menu */}

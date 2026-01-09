@@ -18,27 +18,23 @@ export default function CustomerChatPage() {
   const identifier = params.identifier as string
   const [business, setBusiness] = useState<Business | null>(null)
   const [step, setStep] = useState<Step>('email')
-  const [email, setEmail] = useState('')
+  // Initialize email from localStorage if available
+  const [email, setEmail] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('customer_email') || ''
+    }
+    return ''
+  })
   const [name, setName] = useState('')
   const [loading, setLoading] = useState(true)
   const [checking, setChecking] = useState(false)
   const findOrCreateConversation = useFindOrCreateConversation()
   const { showError } = useToast()
 
-  // Load email from localStorage on mount
+  // Save email to localStorage whenever it changes
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedEmail = localStorage.getItem('customer_email')
-      if (savedEmail) {
-        setEmail(savedEmail)
-      }
-    }
-  }, [])
-
-  // Save email to localStorage when it changes
-  useEffect(() => {
-    if (email && typeof window !== 'undefined') {
-      localStorage.setItem('customer_email', email)
+    if (typeof window !== 'undefined' && email.trim()) {
+      localStorage.setItem('customer_email', email.trim())
     }
   }, [email])
 
@@ -63,6 +59,11 @@ export default function CustomerChatPage() {
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!business || !email) return
+
+    // Ensure email is saved to localStorage before proceeding
+    if (typeof window !== 'undefined' && email.trim()) {
+      localStorage.setItem('customer_email', email.trim())
+    }
 
     setChecking(true)
     try {
@@ -168,7 +169,14 @@ export default function CustomerChatPage() {
                 type="email"
                 required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  const newEmail = e.target.value
+                  setEmail(newEmail)
+                  // Save immediately on change
+                  if (typeof window !== 'undefined' && newEmail.trim()) {
+                    localStorage.setItem('customer_email', newEmail.trim())
+                  }
+                }}
                 className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 placeholder="your@email.com"
                 disabled={checking}
