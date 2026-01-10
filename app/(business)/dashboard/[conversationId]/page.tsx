@@ -10,7 +10,6 @@ import { useRealtimeMessages } from '@/lib/hooks/use-realtime-messages'
 import { uploadImage } from '@/lib/utils/image-upload'
 import { format } from 'date-fns'
 import { HiReply, HiPencil, HiTrash, HiPhotograph, HiCheck, HiCheckCircle, HiArrowLeft, HiDotsVertical } from 'react-icons/hi'
-import { PWAInstallPrompt } from '@/components/pwa-install-prompt'
 import { parseLinks, extractFirstUrl } from '@/lib/utils/link-parser'
 import { LinkPreview } from '@/components/link-preview'
 import { useToast } from '@/lib/hooks/use-toast'
@@ -63,6 +62,7 @@ export default function BusinessChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // Subscribe to realtime messages
@@ -95,8 +95,18 @@ export default function BusinessChatPage() {
     }
   }, [allMessages.length])
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault()
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+      const scrollHeight = textareaRef.current.scrollHeight
+      const maxHeight = 120 // Max height in pixels (about 5-6 lines)
+      textareaRef.current.style.height = `${Math.min(scrollHeight, maxHeight)}px`
+    }
+  }, [message])
+
+  const handleSend = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
     if (!message.trim() || sending || !business) return
 
     setSending(true)
@@ -105,12 +115,17 @@ export default function BusinessChatPage() {
         conversation_id: conversationId,
         sender_type: 'business',
         sender_id: business.id,
-        content: message.trim(),
+        content: message, // Don't trim - preserve formatting
         image_url: null,
         reply_to_id: replyingTo || null,
       })
       setMessage('')
       setReplyingTo(null)
+      
+      // Reset textarea height
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto'
+      }
     } catch (err) {
       console.error('Failed to send message:', err)
       showError('Failed to send message. Please try again.')
@@ -535,7 +550,7 @@ export default function BusinessChatPage() {
             </div>
           ) : null
         })()}
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-end">
           <input
             ref={fileInputRef}
             type="file"
@@ -551,7 +566,7 @@ export default function BusinessChatPage() {
               fileInputRef.current?.click()
             }}
             disabled={uploadingImage || sending}
-            className="flex-shrink-0 rounded-full p-2.5 text-gray-500 hover:bg-gray-100 active:bg-gray-200 dark:text-[#8696a0] dark:hover:bg-[#111b21] disabled:opacity-50 transition-colors"
+            className="flex-shrink-0 rounded-full p-2.5 text-gray-500 hover:bg-gray-100 active:bg-gray-200 dark:text-[#8696a0] dark:hover:bg-[#111b21] disabled:opacity-50 transition-colors mb-1"
           >
             {uploadingImage ? (
               <span className="text-xs">...</span>
@@ -559,18 +574,21 @@ export default function BusinessChatPage() {
               <HiPhotograph className="text-lg" />
             )}
           </button>
-          <input
-            type="text"
+          <textarea
+            ref={textareaRef}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder={replyingTo ? "Type your reply..." : "Type a message..."}
-            className="flex-1 rounded-full border-0 bg-gray-100 px-4 py-2.5 text-sm focus:outline-none focus:ring-0 dark:bg-[#2a3942] dark:text-[#e9edef] dark:placeholder:text-[#8696a0] disabled:opacity-50"
+            rows={1}
+            className="flex-1 rounded-2xl border-0 bg-gray-100 px-4 py-2.5 text-sm focus:outline-none focus:ring-0 dark:bg-[#2a3942] dark:text-[#e9edef] dark:placeholder:text-[#8696a0] disabled:opacity-50 resize-none overflow-y-auto min-h-[44px] max-h-[120px]"
             disabled={sending || uploadingImage}
+            style={{ height: 'auto' }}
           />
           <button
-            type="submit"
+            type="button"
+            onClick={() => handleSend()}
             disabled={!message.trim() || sending || uploadingImage}
-            className="flex-shrink-0 rounded-full bg-primary-600 p-2.5 text-white hover:bg-primary-700 active:bg-primary-800 focus:outline-none disabled:opacity-50 transition-colors"
+            className="flex-shrink-0 rounded-full bg-primary-600 p-2.5 text-white hover:bg-primary-700 active:bg-primary-800 focus:outline-none disabled:opacity-50 transition-colors mb-1"
           >
             {sending ? (
               <span className="text-xs">...</span>
@@ -580,9 +598,6 @@ export default function BusinessChatPage() {
           </button>
         </div>
       </form>
-
-      {/* PWA Install Prompt */}
-      <PWAInstallPrompt />
 
       {/* Image Editor Modal */}
       {imageToEdit && business && (
