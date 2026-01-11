@@ -112,22 +112,22 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
         return {
           container: 'bg-gradient-to-r from-green-500 to-green-600 dark:from-green-600 dark:to-green-700 shadow-lg shadow-green-500/30 dark:shadow-green-600/30',
           iconBg: 'bg-white/20',
-          text: 'text-white',
-          close: 'hover:bg-white/20 text-white'
+          text: 'text-gray-600',
+          close: 'hover:bg-white/20 text-gray-600'
         }
       case 'error':
         return {
           container: 'bg-gradient-to-r from-red-500 to-red-600 dark:from-red-600 dark:to-red-700 shadow-lg shadow-red-500/30 dark:shadow-red-600/30',
           iconBg: 'bg-white/20',
-          text: 'text-white',
-          close: 'hover:bg-white/20 text-white'
+          text: 'text-gray-600',
+          close: 'hover:bg-white/20 text-gray-600'
         }
       default:
         return {
           container: 'bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 shadow-lg shadow-blue-500/30 dark:shadow-blue-600/30',
           iconBg: 'bg-white/20',
-          text: 'text-white',
-          close: 'hover:bg-white/20 text-white'
+          text: 'text-gray-600',
+          close: 'hover:bg-white/20 text-gray-600'
         }
     }
   }

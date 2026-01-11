@@ -8,8 +8,10 @@ import { useBusiness, useUpdateBusiness } from '@/lib/queries/businesses'
 import { useQueryClient } from '@tanstack/react-query'
 import { uploadImage } from '@/lib/utils/image-upload'
 import { getBusinessLogoUrl } from '@/lib/utils/storage'
-import { HiUser, HiUsers, HiSpeakerphone, HiCollection, HiLink, HiCamera, HiDocumentDuplicate, HiLocationMarker, HiPhone, HiOfficeBuilding, HiPaperAirplane, HiTrash, HiRefresh } from 'react-icons/hi'
+import { HiUser, HiUsers, HiSpeakerphone, HiCollection, HiLink, HiCamera, HiDocumentDuplicate, HiLocationMarker, HiPhone, HiOfficeBuilding, HiPaperAirplane, HiTrash, HiRefresh, HiPhotograph } from 'react-icons/hi'
 import { useToast } from '@/lib/hooks/use-toast'
+import { ImageEditor } from '@/components/image-editor'
+import { ImagePreviewModal } from '@/components/image-preview-modal'
 
 // Helper function to get initials from name or email
 function getInitials(name: string | null, email: string): string {
@@ -45,6 +47,10 @@ export default function SettingsPage() {
   // Broadcast message state
   const [broadcastContent, setBroadcastContent] = useState('')
   const [broadcasting, setBroadcasting] = useState(false)
+  const [broadcastImageToEdit, setBroadcastImageToEdit] = useState<File | null>(null)
+  const [broadcastImageUrl, setBroadcastImageUrl] = useState<string | null>(null)
+  const [uploadingBroadcastImage, setUploadingBroadcastImage] = useState(false)
+  const broadcastImageInputRef = useRef<HTMLInputElement>(null)
   
   // Away message state
   const [awayMessage, setAwayMessage] = useState('')
@@ -163,9 +169,50 @@ export default function SettingsPage() {
     }
   }
 
+  const handleBroadcastImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !business) {
+      if (broadcastImageInputRef.current) {
+        broadcastImageInputRef.current.value = ''
+      }
+      return
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      showError('Please select an image file')
+      if (broadcastImageInputRef.current) {
+        broadcastImageInputRef.current.value = ''
+      }
+      return
+    }
+
+    // Validate file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+      showError('Image size must be less than 10MB')
+      if (broadcastImageInputRef.current) {
+        broadcastImageInputRef.current.value = ''
+      }
+      return
+    }
+
+    // Show image editor
+    setBroadcastImageToEdit(file)
+    if (broadcastImageInputRef.current) {
+      broadcastImageInputRef.current.value = ''
+    }
+  }
+
+  const handleRemoveBroadcastImage = () => {
+    setBroadcastImageUrl(null)
+    if (broadcastImageInputRef.current) {
+      broadcastImageInputRef.current.value = ''
+    }
+  }
+
   const handleBroadcast = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!business || !broadcastContent.trim()) return
+    if (!business || (!broadcastContent.trim() && !broadcastImageUrl)) return
 
     if (!confirm('Are you sure you want to send this message to all your customers?')) {
       return
@@ -174,8 +221,13 @@ export default function SettingsPage() {
     setBroadcasting(true)
     try {
       const { broadcastMessage } = await import('@/lib/queries/messages')
-      await broadcastMessage(business.id, broadcastContent.trim())
+      await broadcastMessage(
+        business.id, 
+        broadcastContent.trim() || '', 
+        broadcastImageUrl || undefined
+      )
       setBroadcastContent('')
+      setBroadcastImageUrl(null)
       
       // Invalidate queries to refresh conversations and messages
       queryClient.invalidateQueries({ queryKey: ['conversations'] })
@@ -518,10 +570,58 @@ export default function SettingsPage() {
                   </p>
                 </div>
 
+                {/* Image Attachment */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                    Image (Optional)
+                  </label>
+                  <input
+                    ref={broadcastImageInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleBroadcastImageSelect}
+                    className="hidden"
+                  />
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => broadcastImageInputRef.current?.click()}
+                      disabled={broadcasting || uploadingBroadcastImage}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <HiPhotograph className="text-lg" />
+                      <span>Attach Image</span>
+                    </button>
+                    {broadcastImageUrl && (
+                      <div className="flex items-center gap-2">
+                        <img
+                          src={broadcastImageUrl}
+                          alt="Broadcast preview"
+                          className="h-16 w-16 rounded-lg object-cover border border-gray-300 dark:border-gray-600 cursor-pointer hover:opacity-90 transition-opacity"
+                          onClick={() => {
+                            // Could open preview modal here if needed
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleRemoveBroadcastImage}
+                          className="p-1.5 rounded-full text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors"
+                          aria-label="Remove image"
+                        >
+                          <HiTrash className="text-lg" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    You can attach an image along with your message. Image will be compressed automatically.
+                  </p>
+                </div>
+
                 <div className="pt-4">
                   <button
                     type="submit"
-                    disabled={broadcasting || !broadcastContent.trim()}
+                    disabled={broadcasting || uploadingBroadcastImage || (!broadcastContent.trim() && !broadcastImageUrl)}
                     className="flex items-center gap-2 px-6 py-3 rounded-lg bg-primary-600 text-white font-semibold hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md shadow-primary-600/20"
                   >
                     <HiPaperAirplane className="text-lg" />
@@ -530,6 +630,33 @@ export default function SettingsPage() {
                 </div>
               </form>
             </div>
+
+            {/* Image Editor Modal */}
+            {broadcastImageToEdit && business && (
+              <ImageEditor
+                imageFile={broadcastImageToEdit}
+                onSave={async (editedFile) => {
+                  setBroadcastImageToEdit(null)
+                  setUploadingBroadcastImage(true)
+                  try {
+                    const imageUrl = await uploadImage(editedFile, business.id, 'images')
+                    setBroadcastImageUrl(imageUrl)
+                    showSuccess('Image attached successfully')
+                  } catch (err) {
+                    console.error('Failed to upload image:', err)
+                    showError('Failed to upload image. Please try again.')
+                  } finally {
+                    setUploadingBroadcastImage(false)
+                  }
+                }}
+                onCancel={() => {
+                  setBroadcastImageToEdit(null)
+                  if (broadcastImageInputRef.current) {
+                    broadcastImageInputRef.current.value = ''
+                  }
+                }}
+              />
+            )}
           </>
         )}
 
