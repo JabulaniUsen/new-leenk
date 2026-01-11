@@ -68,7 +68,7 @@ export default function BusinessLayout({ children }: { children: React.ReactNode
     { href: '/settings', icon: HiUser, label: 'Profile', section: 'profile' },
     { href: '/dashboard', icon: HiUsers, label: 'Users', section: 'users' },
     { href: '/settings#broadcast', icon: HiSpeakerphone, label: 'Broadcast Message', section: 'broadcast' },
-    { href: '/settings#away', icon: HiCollection, label: 'Away Message', section: 'away' },
+    { href: '/settings#away', icon: HiCollection, label: 'Welcome Message', section: 'away' },
   ]
 
   return (

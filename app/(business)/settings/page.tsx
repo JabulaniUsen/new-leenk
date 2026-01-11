@@ -200,7 +200,7 @@ export default function SettingsPage() {
         away_message: awayMessage.trim() || null,
         away_message_enabled: awayMessageEnabled,
       })
-      showSuccess('Away message settings saved successfully!')
+      showSuccess('Welcome message settings saved successfully!')
     } catch (err) {
       console.error('Failed to save away message:', err)
       showError('Failed to save away message settings. Please try again.')
@@ -290,7 +290,7 @@ export default function SettingsPage() {
             }`}
           >
             <HiCollection className="text-lg" />
-            <span className="hidden sm:inline">Away Message</span>
+            <span className="hidden sm:inline">Welcome Message</span>
           </Link>
         </div>
       </div>
@@ -529,8 +529,8 @@ export default function SettingsPage() {
         {activeTab === 'away' && (
           <>
             <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Away Message</h1>
-              <p className="text-gray-600 dark:text-gray-400">Automatically send a message when customers contact you</p>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Welcome Message</h1>
+              <p className="text-gray-600 dark:text-gray-400">Automatically send a welcome message when customers enter the chat</p>
             </div>
 
             <div className="bg-white rounded-xl border border-gray-200 dark:bg-gray-800 dark:border-gray-700 p-6 shadow-sm">
@@ -538,10 +538,10 @@ export default function SettingsPage() {
                 <div className="flex items-center justify-between pb-4 border-b border-gray-200 dark:border-gray-700">
                   <div>
                     <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-1">
-                      Enable Away Message
+                      Enable Welcome Message
                     </label>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Automatically send this message when a customer sends you a message
+                      Automatically send this message once when a customer enters the chat (as a welcome message)
                     </p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
@@ -557,18 +557,18 @@ export default function SettingsPage() {
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                    Away Message
+                    Welcome Message
                   </label>
                   <textarea
                     value={awayMessage}
                     onChange={(e) => setAwayMessage(e.target.value)}
-                    placeholder="e.g., We're currently offline. We'll get back to you as soon as possible!"
+                    placeholder="e.g., Hello! Thanks for reaching out. We're here to help!"
                     rows={4}
                     disabled={!awayMessageEnabled}
                     className="w-full rounded-lg border border-gray-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all resize-none disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                    This message will be sent automatically to customers when they send you a message (if enabled).
+                    This message will be sent automatically once when a customer enters the chat or starts a new conversation (if enabled).
                   </p>
                 </div>
 
@@ -579,7 +579,7 @@ export default function SettingsPage() {
                     className="flex items-center gap-2 px-6 py-3 rounded-lg bg-primary-600 text-white font-semibold hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md shadow-primary-600/20"
                   >
                     <span className="w-2 h-2 rounded-full bg-white"></span>
-                    <span>{savingAwayMessage ? 'Saving...' : 'Save Away Message'}</span>
+                    <span>{savingAwayMessage ? 'Saving...' : 'Save Welcome Message'}</span>
                   </button>
                 </div>
               </form>

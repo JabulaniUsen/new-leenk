@@ -6,8 +6,9 @@ type Business = Database['public']['Tables']['businesses']['Row']
 type MessageInsert = Database['public']['Tables']['messages']['Insert']
 
 /**
- * Check if away message should be sent and send it automatically
- * Cost optimization: Only checks business status once per conversation
+ * Check if welcome/away message should be sent and send it automatically
+ * Sends once per conversation when customer enters the chat
+ * Cost optimization: Only checks if message was ever sent in this conversation
  */
 export async function checkAndSendAwayMessage(
   businessId: string,
@@ -35,22 +36,22 @@ export async function checkAndSendAwayMessage(
   
   const awayMessage = businessData.away_message
 
-  // Check if away message was already sent recently (within last hour)
-  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
-
-  const { data: recentAwayMessage } = await supabase
+  // Check if away message was already sent in this conversation (ever)
+  // This ensures it only sends once per conversation as a welcome message
+  const { data: existingAwayMessage } = await supabase
     .from('messages')
     .select('id')
     .eq('conversation_id', conversationId)
     .eq('sender_type', 'business')
     .eq('sender_id', businessId)
     .eq('content', awayMessage)
-    .gte('created_at', oneHourAgo)
     .limit(1)
     .single()
 
-  // Don't send if already sent recently
-  if (recentAwayMessage) return
+  // Don't send if already sent in this conversation
+  if (existingAwayMessage) {
+    return
+  }
 
   // Send away message
   const message: MessageInsert = {

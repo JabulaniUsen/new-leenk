@@ -62,6 +62,7 @@ export default function ChatPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const welcomeMessageSentRef = useRef<string | null>(null)
 
   // Load business info
   useEffect(() => {
@@ -80,6 +81,25 @@ export default function ChatPage() {
 
   // Subscribe to realtime messages
   useRealtimeMessages(conversationId)
+
+  // Send welcome message when customer enters the chat
+  // Only runs once per conversation
+  useEffect(() => {
+    const sendWelcomeMessage = async () => {
+      if (conversation?.business_id && conversationId && welcomeMessageSentRef.current !== conversationId) {
+        welcomeMessageSentRef.current = conversationId
+        // Check and send welcome message only once per conversation
+        checkAndSendAwayMessage(conversation.business_id, conversationId).catch(
+          (err) => console.error('Failed to send welcome message:', err)
+        )
+      }
+    }
+
+    if (conversation?.id && conversation?.business_id) {
+      sendWelcomeMessage()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversation?.id]) // Run when conversation is loaded
 
   // Auto-resize textarea
   useEffect(() => {
@@ -107,15 +127,10 @@ export default function ChatPage() {
       })
       setMessage('')
       setReplyingTo(null)
-      
+
       // Reset textarea height
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto'
-      }
-
-      // Check and send away message if needed
-      if (conversation.business_id) {
-        await checkAndSendAwayMessage(conversation.business_id, conversationId)
       }
     } catch (err) {
       console.error('Failed to send message:', err)
@@ -616,11 +631,6 @@ export default function ChatPage() {
                 reply_to_id: replyingTo || null,
               })
               setReplyingTo(null)
-
-              // Check and send away message if needed
-              if (conversation.business_id) {
-                await checkAndSendAwayMessage(conversation.business_id, conversationId)
-              }
               showSuccess('Image sent')
             } catch (err) {
               console.error('Failed to upload image:', err)
