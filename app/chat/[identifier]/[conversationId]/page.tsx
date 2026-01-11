@@ -83,23 +83,27 @@ export default function ChatPage() {
   useRealtimeMessages(conversationId)
 
   // Send welcome message when customer enters the chat
-  // Only runs once per conversation
+  // Only runs once per conversation - send immediately when page loads, not waiting for first message
   useEffect(() => {
     const sendWelcomeMessage = async () => {
+      // Ensure we have both conversation and business_id before sending
       if (conversation?.business_id && conversationId && welcomeMessageSentRef.current !== conversationId) {
         welcomeMessageSentRef.current = conversationId
-        // Check and send welcome message only once per conversation
+        // Send immediately when customer enters the chat page
+        // This runs as soon as the conversation is loaded, not waiting for any user action
         checkAndSendAwayMessage(conversation.business_id, conversationId).catch(
           (err) => console.error('Failed to send welcome message:', err)
         )
       }
     }
 
-    if (conversation?.id && conversation?.business_id) {
+    // Send immediately when conversation is available - this happens when customer enters the chat
+    // Don't wait for any messages or user actions
+    if (conversation?.id && conversation?.business_id && conversationId) {
       sendWelcomeMessage()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversation?.id]) // Run when conversation is loaded
+  }, [conversation?.id, conversation?.business_id, conversationId]) // Run immediately when conversation loads
 
   // Auto-resize textarea
   useEffect(() => {
@@ -354,7 +358,7 @@ export default function ChatPage() {
                         <textarea
                           value={editContent}
                           onChange={(e) => setEditContent(e.target.value)}
-                          className="w-full rounded-xl border border-gray-300 p-2 sm:p-3 text-xs sm:text-sm dark:border-gray-600 dark:bg-[#111b21] dark:text-[#e9edef] focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          className="w-full rounded-xl border border-gray-300 p-2 sm:p-3 text-xs sm:text-sm text-gray-600 dark:border-gray-600 dark:bg-[#111b21] dark:text-[#e9edef] focus:outline-none focus:ring-2 focus:ring-primary-500"
                           rows={3}
                           autoFocus
                         />
@@ -594,7 +598,7 @@ export default function ChatPage() {
             onChange={(e) => setMessage(e.target.value)}
             placeholder={replyingTo ? "Type your reply..." : "Type a message..."}
             rows={1}
-            className="flex-1 rounded-2xl border-0 bg-gray-100 px-4 py-2.5 text-sm focus:outline-none focus:ring-0 dark:bg-[#2a3942] dark:text-[#e9edef] dark:placeholder:text-[#8696a0] disabled:opacity-50 resize-none overflow-y-auto min-h-[44px] max-h-[120px]"
+            className="flex-1 rounded-2xl border-0 bg-gray-100 px-4 py-2.5 text-sm text-gray-600 focus:outline-none focus:ring-0 dark:bg-[#2a3942] dark:text-[#e9edef] dark:placeholder:text-[#8696a0] disabled:opacity-50 resize-none overflow-y-auto min-h-[44px] max-h-[120px]"
             disabled={sending || uploadingImage}
             style={{ height: 'auto' }}
           />

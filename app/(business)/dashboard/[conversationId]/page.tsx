@@ -327,7 +327,7 @@ export default function BusinessChatPage() {
                         <textarea
                           value={editContent}
                           onChange={(e) => setEditContent(e.target.value)}
-                          className="w-full rounded-xl border border-gray-300 p-2 sm:p-3 text-xs sm:text-sm dark:border-gray-600 dark:bg-[#111b21] dark:text-[#e9edef] focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          className="w-full rounded-xl border border-gray-300 p-2 sm:p-3 text-xs sm:text-sm text-gray-600 dark:border-gray-600 dark:bg-[#111b21] dark:text-[#e9edef] focus:outline-none focus:ring-2 focus:ring-primary-500"
                           rows={3}
                           autoFocus
                         />
@@ -357,20 +357,20 @@ export default function BusinessChatPage() {
                         onTouchMove={handleLongPressEnd}
                         className={`rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 select-none ${
                           isBusiness
-                            ? 'bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white'
-                            : 'bg-[#dcf8c6] text-gray-900'
+                            ? 'bg-[#dcf8c6] text-gray-900'
+                            : 'bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white'
                         }`}
                       >
                         {replyMessage && (
                           <div className={`mb-1 sm:mb-1.5 rounded-lg border-l-2 pl-1.5 sm:pl-2 pr-1 sm:pr-1.5 py-0.5 sm:py-1 text-[10px] sm:text-xs ${
                             isBusiness 
-                              ? 'bg-gray-300/50 border-gray-400' 
-                              : 'bg-white/60 border-gray-600'
+                              ? 'bg-white/60 border-gray-600' 
+                              : 'bg-gray-300/50 border-gray-400'
                           }`}>
-                            <div className="font-medium opacity-90 mb-0.5 text-[9px] sm:text-[10px]">
+                            <div className="font-medium opacity-90 mb-0.5 text-[9px] sm:text-[10px] text-gray-600">
                               {replyMessage.sender_type === 'business' ? 'You' : 'Customer'}
                             </div>
-                            <div className="opacity-80 truncate text-[10px] sm:text-[11px]">
+                            <div className="opacity-80 truncate text-[10px] sm:text-[11px] text-gray-600">
                               {replyMessage.content || 'Image'}
                             </div>
                           </div>
@@ -404,12 +404,12 @@ export default function BusinessChatPage() {
                               ) : msg.status === 'delivered' ? (
                                 <HiCheckCircle className="inline text-[9px] sm:text-xs text-blue-500" />
                               ) : (
-                                <HiCheck className="inline text-[9px] sm:text-xs" />
+                                <HiCheck className="inline text-[9px] sm:text-xs text-gray-600" />
                               )}
                             </span>
                           )}
                           {!isBusiness && (
-                            <HiCheck className="inline text-[9px] sm:text-xs" />
+                            <HiCheck className="inline text-[9px] sm:text-xs text-gray-600" />
                           )}
                         </div>
                       </div>
@@ -580,7 +580,7 @@ export default function BusinessChatPage() {
             onChange={(e) => setMessage(e.target.value)}
             placeholder={replyingTo ? "Type your reply..." : "Type a message..."}
             rows={1}
-            className="flex-1 rounded-2xl border-0 bg-gray-100 px-4 py-2.5 text-sm focus:outline-none focus:ring-0 dark:bg-[#2a3942] dark:text-[#e9edef] dark:placeholder:text-[#8696a0] disabled:opacity-50 resize-none overflow-y-auto min-h-[44px] max-h-[120px]"
+            className="flex-1 rounded-2xl border-0 bg-gray-100 px-4 py-2.5 text-sm text-gray-600 focus:outline-none focus:ring-0 dark:bg-[#2a3942] dark:text-[#e9edef] dark:placeholder:text-[#8696a0] disabled:opacity-50 resize-none overflow-y-auto min-h-[44px] max-h-[120px]"
             disabled={sending || uploadingImage}
             style={{ height: 'auto' }}
           />

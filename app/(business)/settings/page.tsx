@@ -272,6 +272,10 @@ export default function SettingsPage() {
           </Link>
           <Link
             href="/settings#broadcast"
+            onClick={(e) => {
+              e.preventDefault()
+              router.push('/settings#broadcast')
+            }}
             className={`flex items-center gap-2 text-sm whitespace-nowrap pb-2 -mb-3 transition-colors ${
               activeTab === 'broadcast'
                 ? 'text-primary-600 dark:text-primary-400 font-semibold border-b-2 border-primary-600 dark:border-primary-400'
@@ -283,6 +287,10 @@ export default function SettingsPage() {
           </Link>
           <Link
             href="/settings#away"
+            onClick={(e) => {
+              e.preventDefault()
+              router.push('/settings#away')
+            }}
             className={`flex items-center gap-2 text-sm whitespace-nowrap pb-2 -mb-3 transition-colors ${
               activeTab === 'away'
                 ? 'text-primary-600 dark:text-primary-400 font-semibold border-b-2 border-primary-600 dark:border-primary-400'
@@ -384,7 +392,7 @@ export default function SettingsPage() {
                   type="text"
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-600 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                   placeholder="Enter business name"
                 />
               </div>
@@ -399,7 +407,7 @@ export default function SettingsPage() {
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-600 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                   placeholder="Enter phone number"
                 />
               </div>
@@ -414,7 +422,7 @@ export default function SettingsPage() {
                   type="text"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-600 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                   placeholder="Enter address"
                 />
               </div>
@@ -444,7 +452,7 @@ export default function SettingsPage() {
                 type="text"
                 value={getBusinessLink()}
                 readOnly
-                className="flex-1 rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm font-mono"
+                className="flex-1 rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-gray-600 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 text-sm font-mono"
               />
               <button
                 type="button"
@@ -503,7 +511,7 @@ export default function SettingsPage() {
                     onChange={(e) => setBroadcastContent(e.target.value)}
                     placeholder="Type your message here..."
                     rows={6}
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all resize-none"
+                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-600 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all resize-none"
                   />
                   <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                     This message will be sent to all your customers immediately.
@@ -565,7 +573,7 @@ export default function SettingsPage() {
                     placeholder="e.g., Hello! Thanks for reaching out. We're here to help!"
                     rows={4}
                     disabled={!awayMessageEnabled}
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-600 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all resize-none disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                     This message will be sent automatically once when a customer enters the chat or starts a new conversation (if enabled).

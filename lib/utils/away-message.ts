@@ -36,9 +36,10 @@ export async function checkAndSendAwayMessage(
   
   const awayMessage = businessData.away_message
 
-  // Check if away message was already sent in this conversation (ever)
+  // Check if this specific away message was already sent in this conversation
   // This ensures it only sends once per conversation as a welcome message
-  const { data: existingAwayMessage } = await supabase
+  // The check happens when customer enters the chat, not when they send a message
+  const { data: existingAwayMessage, error: checkError } = await supabase
     .from('messages')
     .select('id')
     .eq('conversation_id', conversationId)
@@ -46,10 +47,11 @@ export async function checkAndSendAwayMessage(
     .eq('sender_id', businessId)
     .eq('content', awayMessage)
     .limit(1)
-    .single()
+    .maybeSingle()
 
-  // Don't send if already sent in this conversation
-  if (existingAwayMessage) {
+  // Don't send if this exact away message was already sent in this conversation
+  // maybeSingle() returns null if no row found, so we check for data existence
+  if (existingAwayMessage && !checkError) {
     return
   }
 

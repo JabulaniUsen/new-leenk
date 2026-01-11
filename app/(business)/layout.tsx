@@ -127,7 +127,14 @@ export default function BusinessLayout({ children }: { children: React.ReactNode
               <Link
                 key={item.href + item.label}
                 href={item.href}
-                onClick={() => setSidebarOpen(false)}
+                onClick={(e) => {
+                  setSidebarOpen(false)
+                  // Ensure proper navigation for hash links
+                  if (item.href.includes('#')) {
+                    e.preventDefault()
+                    router.push(item.href)
+                  }
+                }}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                   active
                     ? 'bg-primary-600 text-white shadow-md shadow-primary-600/20'

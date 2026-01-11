@@ -100,7 +100,6 @@ export default function CustomerChatPage() {
         customerName: name || undefined,
       })
 
-      // Navigate to chat - welcome message will be sent when chat page loads
       router.push(`/chat/${identifier}/${conversation.id}`)
     } catch (err: any) {
       showError(err.message || 'Failed to start conversation. Please try again.')
