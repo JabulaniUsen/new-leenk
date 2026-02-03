@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useBusiness } from '@/lib/queries/businesses'
-import { useConversations, useUpdateConversation } from '@/lib/queries/conversations'
+import { useConversations, useUpdateConversation, useDeleteConversation } from '@/lib/queries/conversations'
 import { useRealtimeConversations } from '@/lib/hooks/use-realtime-conversations'
 import { formatDistanceToNow } from 'date-fns'
-import { HiBookmark } from 'react-icons/hi'
+import { HiBookmark, HiTrash } from 'react-icons/hi'
 
 // Helper function to get initials from name or email
 function getInitials(name: string | null, email: string): string {
@@ -33,7 +33,9 @@ export default function DashboardPage() {
   const { data: business, isLoading: businessLoading } = useBusiness()
   const { data: conversations, isLoading: conversationsLoading } = useConversations()
   const updateConversation = useUpdateConversation()
+  const deleteConversation = useDeleteConversation()
   const [showPinButton, setShowPinButton] = useState<string | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null)
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null)
   const touchStartRef = useRef<{ conversationId: string; startTime: number } | null>(null)
 
@@ -52,6 +54,25 @@ export default function DashboardPage() {
     } catch (err) {
       console.error('Failed to toggle pin:', err)
     }
+  }
+
+  const handleDeleteClick = (e: React.MouseEvent | React.TouchEvent, conversationId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setShowDeleteConfirm(conversationId)
+  }
+
+  const handleDeleteConfirm = async (conversationId: string) => {
+    try {
+      await deleteConversation.mutateAsync(conversationId)
+      setShowDeleteConfirm(null)
+    } catch (err) {
+      console.error('Failed to delete conversation:', err)
+    }
+  }
+
+  const handleDeleteCancel = () => {
+    setShowDeleteConfirm(null)
   }
 
   // Long press handler for mobile/touch devices
@@ -92,16 +113,19 @@ export default function DashboardPage() {
     }
   }, [])
 
-  // Click outside to hide pin button
+  // Click outside to hide pin button and delete confirm
   useEffect(() => {
     const handleClickOutside = () => {
       if (showPinButton) {
         setShowPinButton(null)
       }
+      if (showDeleteConfirm) {
+        setShowDeleteConfirm(null)
+      }
     }
     document.addEventListener('click', handleClickOutside)
     return () => document.removeEventListener('click', handleClickOutside)
-  }, [showPinButton])
+  }, [showPinButton, showDeleteConfirm])
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -156,6 +180,7 @@ export default function DashboardPage() {
                   const hasUnread = unreadCount > 0
 
                   const isPinButtonVisible = showPinButton === conversation.id || conversation.pinned
+                  const isDeleteConfirmVisible = showDeleteConfirm === conversation.id
 
                   return (
                     <div
@@ -227,26 +252,71 @@ export default function DashboardPage() {
                         </div>
                       </Link>
 
-                      {/* Pin/Unpin Button */}
-                      <button
-                        onClick={(e) => handlePinToggle(e, conversation.id, conversation.pinned)}
-                        onTouchStart={(e) => {
-                          e.stopPropagation()
-                          handlePinToggle(e, conversation.id, conversation.pinned)
-                        }}
-                        className={`flex-shrink-0 p-2 rounded-lg transition-all ${
-                          isPinButtonVisible
-                            ? 'opacity-100'
-                            : 'opacity-0 group-hover:opacity-100'
-                        } ${
-                          conversation.pinned
-                            ? 'text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20'
-                            : 'text-gray-400 hover:text-primary-600 hover:bg-gray-100 dark:hover:bg-gray-700'
-                        }`}
-                        title={conversation.pinned ? 'Unpin conversation' : 'Pin conversation'}
-                      >
-                        <HiBookmark className={`text-lg ${conversation.pinned ? 'fill-current' : ''}`} />
-                      </button>
+                      {/* Action Buttons */}
+                      <div className="flex-shrink-0 flex items-center gap-1">
+                        {/* Delete Button */}
+                        {isDeleteConfirmVisible ? (
+                          <div className="flex items-center gap-1 bg-red-50 dark:bg-red-900/20 rounded-lg px-2 py-1">
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                handleDeleteConfirm(conversation.id)
+                              }}
+                              className="text-xs text-red-600 dark:text-red-400 font-medium px-2 py-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded"
+                              title="Confirm delete"
+                            >
+                              Confirm
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                handleDeleteCancel()
+                              }}
+                              className="text-xs text-gray-600 dark:text-gray-400 font-medium px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                              title="Cancel"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={(e) => handleDeleteClick(e, conversation.id)}
+                            onTouchStart={(e) => {
+                              e.stopPropagation()
+                              handleDeleteClick(e, conversation.id)
+                            }}
+                            className={`flex-shrink-0 p-2 rounded-lg transition-all ${
+                              'opacity-0 group-hover:opacity-100'
+                            } text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20`}
+                            title="Delete conversation"
+                          >
+                            <HiTrash className="text-lg" />
+                          </button>
+                        )}
+
+                        {/* Pin/Unpin Button */}
+                        <button
+                          onClick={(e) => handlePinToggle(e, conversation.id, conversation.pinned)}
+                          onTouchStart={(e) => {
+                            e.stopPropagation()
+                            handlePinToggle(e, conversation.id, conversation.pinned)
+                          }}
+                          className={`flex-shrink-0 p-2 rounded-lg transition-all ${
+                            isPinButtonVisible
+                              ? 'opacity-100'
+                              : 'opacity-0 group-hover:opacity-100'
+                          } ${
+                            conversation.pinned
+                              ? 'text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20'
+                              : 'text-gray-400 hover:text-primary-600 hover:bg-gray-100 dark:hover:bg-gray-700'
+                          }`}
+                          title={conversation.pinned ? 'Unpin conversation' : 'Pin conversation'}
+                        >
+                          <HiBookmark className={`text-lg ${conversation.pinned ? 'fill-current' : ''}`} />
+                        </button>
+                      </div>
                     </div>
                   )
                 })}

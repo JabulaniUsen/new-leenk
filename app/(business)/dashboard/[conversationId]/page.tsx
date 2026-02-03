@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useBusiness } from '@/lib/queries/businesses'
 import { useMessages, useSendMessage, useUpdateMessage, useDeleteMessage, useMarkMessagesAsRead, broadcastMessage } from '@/lib/queries/messages'
-import { useConversation } from '@/lib/queries/conversations'
+import { useConversation, useDeleteConversation } from '@/lib/queries/conversations'
 import { useRealtimeMessages } from '@/lib/hooks/use-realtime-messages'
 import { uploadImage } from '@/lib/utils/image-upload'
 import { format } from 'date-fns'
@@ -44,6 +44,7 @@ export default function BusinessChatPage() {
   const sendMessage = useSendMessage()
   const updateMessage = useUpdateMessage()
   const deleteMessage = useDeleteMessage()
+  const deleteConversation = useDeleteConversation()
   const markAsRead = useMarkMessagesAsRead()
   const { showSuccess, showError } = useToast()
   const [message, setMessage] = useState('')
@@ -59,6 +60,8 @@ export default function BusinessChatPage() {
     isBusiness: boolean
     position: { x: number; y: number }
   } | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showMenuDropdown, setShowMenuDropdown] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -104,6 +107,17 @@ export default function BusinessChatPage() {
       textareaRef.current.style.height = `${Math.min(scrollHeight, maxHeight)}px`
     }
   }, [message])
+
+  // Close menu dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (showMenuDropdown) {
+        setShowMenuDropdown(false)
+      }
+    }
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [showMenuDropdown])
 
   const handleSend = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
@@ -263,6 +277,18 @@ export default function BusinessChatPage() {
   const customerEmail = conversation?.customer_email || ''
   const initials = getInitials(conversation?.customer_name || null, customerEmail)
 
+  const handleDeleteConversation = async () => {
+    try {
+      await deleteConversation.mutateAsync(conversationId)
+      setShowDeleteConfirm(false)
+      setShowMenuDropdown(false)
+      router.push('/dashboard')
+    } catch (err) {
+      console.error('Failed to delete conversation:', err)
+      showError('Failed to delete conversation. Please try again.')
+    }
+  }
+
   return (
     <div className="flex h-full flex-col bg-white dark:bg-gray-900">
       {/* Header */}
@@ -291,9 +317,27 @@ export default function BusinessChatPage() {
             </p>
           </div>
           {/* Menu */}
-          <button className="flex-shrink-0 rounded-full p-1.5 sm:p-2 text-gray-600 hover:bg-gray-100 active:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors">
-            <HiDotsVertical className="text-lg sm:text-xl" />
-          </button>
+          <div className="relative">
+            <button 
+              onClick={() => setShowMenuDropdown(!showMenuDropdown)}
+              className="flex-shrink-0 rounded-full p-1.5 sm:p-2 text-gray-600 hover:bg-gray-100 active:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors"
+            >
+              <HiDotsVertical className="text-lg sm:text-xl" />
+            </button>
+            {showMenuDropdown && (
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
+                <button
+                  onClick={() => {
+                    setShowDeleteConfirm(true)
+                    setShowMenuDropdown(false)
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                >
+                  Delete Conversation
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -640,6 +684,34 @@ export default function BusinessChatPage() {
           imageUrl={previewImageUrl}
           onClose={() => setPreviewImageUrl(null)}
         />
+      )}
+
+      {/* Delete Conversation Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              Delete Conversation
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+              Are you sure you want to delete this conversation? This action cannot be undone and will delete all messages in this conversation.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConversation}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 active:bg-red-800 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

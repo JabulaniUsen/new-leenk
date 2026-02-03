@@ -250,3 +250,58 @@ export function useUpdateConversation() {
   })
 }
 
+/**
+ * Delete conversation (business only)
+ * Cost optimization: Deletes messages first, then conversation
+ */
+export function useDeleteConversation() {
+  const queryClient = useQueryClient()
+  const supabase = createClient()
+
+  return useMutation({
+    mutationFn: async (conversationId: string) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) throw new Error('Not authenticated')
+
+      // Verify the conversation belongs to the business
+      const { data: conversation, error: fetchError } = await supabase
+        .from('conversations')
+        .select('business_id')
+        .eq('id', conversationId)
+        .single()
+
+      if (fetchError) throw fetchError
+      if (conversation.business_id !== user.id) {
+        throw new Error('Unauthorized: Conversation does not belong to this business')
+      }
+
+      // Delete all messages in the conversation first
+      const { error: messagesError } = await (supabase
+        .from('messages') as any)
+        .delete()
+        .eq('conversation_id', conversationId)
+
+      if (messagesError) throw messagesError
+
+      // Delete the conversation
+      const { error: conversationError } = await (supabase
+        .from('conversations') as any)
+        .delete()
+        .eq('id', conversationId)
+
+      if (conversationError) throw conversationError
+
+      return { conversationId }
+    },
+    onSuccess: ({ conversationId }) => {
+      // Invalidate all related queries
+      queryClient.invalidateQueries({ queryKey: ['conversations'] })
+      queryClient.invalidateQueries({ queryKey: ['conversation', conversationId] })
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] })
+    },
+  })
+}
+
