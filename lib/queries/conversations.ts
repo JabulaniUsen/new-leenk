@@ -274,7 +274,12 @@ export function useDeleteConversation() {
         .single()
 
       if (fetchError) throw fetchError
-      if (conversation.business_id !== user.id) {
+      if (!conversation) {
+        throw new Error('Conversation not found')
+      }
+      
+      const conversationData = conversation as { business_id: string }
+      if (conversationData.business_id !== user.id) {
         throw new Error('Unauthorized: Conversation does not belong to this business')
       }
 
