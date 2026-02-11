@@ -8,7 +8,7 @@ import { useRealtimeMessages } from '@/lib/hooks/use-realtime-messages'
 import { checkAndSendAwayMessage } from '@/lib/utils/away-message'
 import { uploadImage } from '@/lib/utils/image-upload'
 import { format } from 'date-fns'
-import { HiReply, HiPencil, HiTrash, HiPhotograph, HiCheck, HiArrowLeft, HiDotsVertical } from 'react-icons/hi'
+import { HiReply, HiPencil, HiTrash, HiPhotograph, HiCheck, HiArrowLeft, HiDotsVertical, HiClipboardCopy } from 'react-icons/hi'
 import { getBusinessByIdentifier } from '@/lib/queries/businesses'
 import { parseLinks, extractFirstUrl } from '@/lib/utils/link-parser'
 import { LinkPreview } from '@/components/link-preview'
@@ -148,7 +148,7 @@ export default function ChatPage() {
   const handleLongPressStart = (e: React.TouchEvent, msgId: string, isCustomer: boolean) => {
     e.preventDefault()
     const touch = e.touches[0]
-    
+
     longPressTimerRef.current = setTimeout(() => {
       setContextMenu({
         msgId,
@@ -272,7 +272,7 @@ export default function ChatPage() {
     if (messagesEndRef.current && allMessages.length > 0 && messagesContainerRef.current) {
       // Check if user is near bottom (within 200px) before auto-scrolling
       const messagesContainer = messagesContainerRef.current
-      const isNearBottom = 
+      const isNearBottom =
         messagesContainer.scrollHeight - messagesContainer.scrollTop - messagesContainer.clientHeight < 200
       if (isNearBottom) {
         // Use a small delay to ensure DOM is updated
@@ -386,51 +386,49 @@ export default function ChatPage() {
                         onTouchStart={(e) => handleLongPressStart(e, msg.id, isCustomer)}
                         onTouchEnd={handleLongPressEnd}
                         onTouchMove={handleLongPressEnd}
-                        className={`rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 select-none ${
-                          isCustomer
-                            ? 'bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white'
-                            : 'bg-[#dcf8c6] text-gray-900'
-                        }`}
+                        className={`rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 select-none ${isCustomer
+                          ? 'bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white'
+                          : 'bg-[#dcf8c6] text-gray-900'
+                          }`}
                       >
-                      {replyMessage && (
-                        <div className={`mb-1 sm:mb-1.5 rounded-lg border-l-2 pl-1.5 sm:pl-2 pr-1 sm:pr-1.5 py-0.5 sm:py-1 text-[10px] sm:text-xs ${
-                          isCustomer 
-                            ? 'bg-gray-300/50 border-gray-400' 
+                        {replyMessage && (
+                          <div className={`mb-1 sm:mb-1.5 rounded-lg border-l-2 pl-1.5 sm:pl-2 pr-1 sm:pr-1.5 py-0.5 sm:py-1 text-[10px] sm:text-xs ${isCustomer
+                            ? 'bg-gray-300/50 border-gray-400'
                             : 'bg-white/60 border-gray-600'
-                        }`}>
-                          <div className="font-medium opacity-90 mb-0.5 text-[9px] sm:text-[10px]">
-                            {replyMessage.sender_type === 'customer' ? 'You' : 'Business'}
+                            }`}>
+                            <div className="font-medium opacity-90 mb-0.5 text-[9px] sm:text-[10px]">
+                              {replyMessage.sender_type === 'customer' ? 'You' : 'Business'}
+                            </div>
+                            <div className="opacity-80 truncate text-[10px] sm:text-[11px]">
+                              {replyMessage.content || 'Image'}
+                            </div>
                           </div>
-                          <div className="opacity-80 truncate text-[10px] sm:text-[11px]">
-                            {replyMessage.content || 'Image'}
+                        )}
+                        {msg.image_url && (
+                          <div className="mb-1 sm:mb-1.5 -mx-0.5 sm:-mx-1">
+                            <img
+                              src={msg.image_url}
+                              alt="Message attachment"
+                              className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                              onClick={() => setPreviewImageUrl(msg.image_url!)}
+                            />
                           </div>
+                        )}
+                        {msg.content && (
+                          <>
+                            <p className="whitespace-pre-wrap text-xs sm:text-sm leading-[1.4] break-words">
+                              {parseLinks(msg.content)}
+                            </p>
+                            {extractFirstUrl(msg.content) && (
+                              <LinkPreview url={extractFirstUrl(msg.content)!} />
+                            )}
+                          </>
+                        )}
+                        <div className="mt-0.5 sm:mt-1 flex items-center justify-end gap-0.5 sm:gap-1 text-[9px] sm:text-[11px] text-gray-500">
+                          <span>{format(new Date(msg.created_at), 'HH:mm')}</span>
+                          <HiCheck className="inline text-[9px] sm:text-xs" />
                         </div>
-                      )}
-                      {msg.image_url && (
-                        <div className="mb-1 sm:mb-1.5 -mx-0.5 sm:-mx-1">
-                          <img
-                            src={msg.image_url}
-                            alt="Message attachment"
-                            className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                            onClick={() => setPreviewImageUrl(msg.image_url!)}
-                          />
-                        </div>
-                      )}
-                      {msg.content && (
-                        <>
-                          <p className="whitespace-pre-wrap text-xs sm:text-sm leading-[1.4] break-words">
-                            {parseLinks(msg.content)}
-                          </p>
-                          {extractFirstUrl(msg.content) && (
-                            <LinkPreview url={extractFirstUrl(msg.content)!} />
-                          )}
-                        </>
-                      )}
-                      <div className="mt-0.5 sm:mt-1 flex items-center justify-end gap-0.5 sm:gap-1 text-[9px] sm:text-[11px] text-gray-500">
-                        <span>{format(new Date(msg.created_at), 'HH:mm')}</span>
-                        <HiCheck className="inline text-[9px] sm:text-xs" />
                       </div>
-                    </div>
                     )}
                   </div>
                 </div>
@@ -477,6 +475,32 @@ export default function ChatPage() {
             onTouchStart={(e) => e.stopPropagation()}
           >
             <div className="py-1">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  const msg = allMessages.find((m) => m.id === contextMenu.msgId)
+                  if (msg?.content) {
+                    navigator.clipboard.writeText(msg.content)
+                      .then(() => showSuccess('Copied to clipboard'))
+                      .catch(() => showError('Failed to copy'))
+                  }
+                  closeContextMenu()
+                }}
+                onTouchEnd={(e) => {
+                  e.stopPropagation()
+                  const msg = allMessages.find((m) => m.id === contextMenu.msgId)
+                  if (msg?.content) {
+                    navigator.clipboard.writeText(msg.content)
+                      .then(() => showSuccess('Copied to clipboard'))
+                      .catch(() => showError('Failed to copy'))
+                  }
+                  closeContextMenu()
+                }}
+                className="w-full px-4 py-2.5 text-left text-sm text-gray-900 dark:text-[#e9edef] hover:bg-gray-100 dark:hover:bg-[#182229] transition-colors flex items-center gap-3"
+              >
+                <HiClipboardCopy className="text-base" />
+                <span>Copy</span>
+              </button>
               <button
                 onClick={(e) => {
                   e.stopPropagation()

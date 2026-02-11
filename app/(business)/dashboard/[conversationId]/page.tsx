@@ -9,7 +9,7 @@ import { useConversation, useDeleteConversation } from '@/lib/queries/conversati
 import { useRealtimeMessages } from '@/lib/hooks/use-realtime-messages'
 import { uploadImage } from '@/lib/utils/image-upload'
 import { format } from 'date-fns'
-import { HiReply, HiPencil, HiTrash, HiPhotograph, HiCheck, HiCheckCircle, HiArrowLeft, HiDotsVertical } from 'react-icons/hi'
+import { HiReply, HiPencil, HiTrash, HiPhotograph, HiCheck, HiCheckCircle, HiArrowLeft, HiDotsVertical, HiClipboardCopy } from 'react-icons/hi'
 import { parseLinks, extractFirstUrl } from '@/lib/utils/link-parser'
 import { LinkPreview } from '@/components/link-preview'
 import { useToast } from '@/lib/hooks/use-toast'
@@ -86,7 +86,7 @@ export default function BusinessChatPage() {
     if (messagesEndRef.current && allMessages.length > 0 && messagesContainerRef.current) {
       // Check if user is near bottom (within 200px) before auto-scrolling
       const messagesContainer = messagesContainerRef.current
-      const isNearBottom = 
+      const isNearBottom =
         messagesContainer.scrollHeight - messagesContainer.scrollTop - messagesContainer.clientHeight < 200
       if (isNearBottom) {
         // Use a small delay to ensure DOM is updated
@@ -135,7 +135,7 @@ export default function BusinessChatPage() {
       })
       setMessage('')
       setReplyingTo(null)
-      
+
       // Reset textarea height
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto'
@@ -156,7 +156,7 @@ export default function BusinessChatPage() {
   const handleLongPressStart = (e: React.TouchEvent, msgId: string, msgIsBusiness: boolean) => {
     e.preventDefault()
     const touch = e.touches[0]
-    
+
     longPressTimerRef.current = setTimeout(() => {
       setContextMenu({
         msgId,
@@ -318,7 +318,7 @@ export default function BusinessChatPage() {
           </div>
           {/* Menu */}
           <div className="relative">
-            <button 
+            <button
               onClick={() => setShowMenuDropdown(!showMenuDropdown)}
               className="flex-shrink-0 rounded-full p-1.5 sm:p-2 text-gray-600 hover:bg-gray-100 active:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors"
             >
@@ -399,18 +399,16 @@ export default function BusinessChatPage() {
                         onTouchStart={(e) => handleLongPressStart(e, msg.id, isBusiness)}
                         onTouchEnd={handleLongPressEnd}
                         onTouchMove={handleLongPressEnd}
-                        className={`rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 select-none ${
-                          isBusiness
-                            ? 'bg-[#dcf8c6] text-gray-900'
-                            : 'bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white'
-                        }`}
+                        className={`rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 select-none ${isBusiness
+                          ? 'bg-[#dcf8c6] text-gray-900'
+                          : 'bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white'
+                          }`}
                       >
                         {replyMessage && (
-                          <div className={`mb-1 sm:mb-1.5 rounded-lg border-l-2 pl-1.5 sm:pl-2 pr-1 sm:pr-1.5 py-0.5 sm:py-1 text-[10px] sm:text-xs ${
-                            isBusiness 
-                              ? 'bg-white/60 border-gray-600' 
-                              : 'bg-gray-300/50 border-gray-400'
-                          }`}>
+                          <div className={`mb-1 sm:mb-1.5 rounded-lg border-l-2 pl-1.5 sm:pl-2 pr-1 sm:pr-1.5 py-0.5 sm:py-1 text-[10px] sm:text-xs ${isBusiness
+                            ? 'bg-white/60 border-gray-600'
+                            : 'bg-gray-300/50 border-gray-400'
+                            }`}>
                             <div className="font-medium opacity-90 mb-0.5 text-[9px] sm:text-[10px] text-gray-600">
                               {replyMessage.sender_type === 'business' ? 'You' : 'Customer'}
                             </div>
@@ -503,6 +501,32 @@ export default function BusinessChatPage() {
             onTouchStart={(e) => e.stopPropagation()}
           >
             <div className="py-1">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  const msg = allMessages.find((m) => m.id === contextMenu.msgId)
+                  if (msg?.content) {
+                    navigator.clipboard.writeText(msg.content)
+                      .then(() => showSuccess('Copied to clipboard'))
+                      .catch(() => showError('Failed to copy'))
+                  }
+                  closeContextMenu()
+                }}
+                onTouchEnd={(e) => {
+                  e.stopPropagation()
+                  const msg = allMessages.find((m) => m.id === contextMenu.msgId)
+                  if (msg?.content) {
+                    navigator.clipboard.writeText(msg.content)
+                      .then(() => showSuccess('Copied to clipboard'))
+                      .catch(() => showError('Failed to copy'))
+                  }
+                  closeContextMenu()
+                }}
+                className="w-full px-4 py-2.5 text-left text-sm text-gray-900 dark:text-[#e9edef] hover:bg-gray-100 dark:hover:bg-[#182229] transition-colors flex items-center gap-3"
+              >
+                <HiClipboardCopy className="text-base" />
+                <span>Copy</span>
+              </button>
               <button
                 onClick={(e) => {
                   e.stopPropagation()
