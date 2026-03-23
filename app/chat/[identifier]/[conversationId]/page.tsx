@@ -8,7 +8,7 @@ import { useRealtimeMessages } from '@/lib/hooks/use-realtime-messages'
 import { checkAndSendAwayMessage } from '@/lib/utils/away-message'
 import { uploadImage } from '@/lib/utils/image-upload'
 import { format } from 'date-fns'
-import { HiReply, HiPencil, HiTrash, HiPhotograph, HiCheck, HiArrowLeft, HiDotsVertical, HiClipboardCopy } from 'react-icons/hi'
+import { HiReply, HiPencil, HiTrash, HiPhotograph, HiCheck, HiArrowLeft, HiDotsVertical, HiClipboardCopy, HiChatAlt2 } from 'react-icons/hi'
 import { getBusinessByIdentifier } from '@/lib/queries/businesses'
 import { parseLinks, extractFirstUrl } from '@/lib/utils/link-parser'
 import { LinkPreview } from '@/components/link-preview'
@@ -62,7 +62,6 @@ export default function ChatPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null)
-  const welcomeMessageSentRef = useRef<string | null>(null)
 
   // Load business info
   useEffect(() => {
@@ -82,29 +81,6 @@ export default function ChatPage() {
   // Subscribe to realtime messages
   useRealtimeMessages(conversationId)
 
-  // Send welcome message when customer enters the chat
-  // Only runs once per conversation - send immediately when page loads, not waiting for first message
-  useEffect(() => {
-    const sendWelcomeMessage = async () => {
-      // Ensure we have both conversation and business_id before sending
-      if (conversation?.business_id && conversationId && welcomeMessageSentRef.current !== conversationId) {
-        welcomeMessageSentRef.current = conversationId
-        // Send immediately when customer enters the chat page
-        // This runs as soon as the conversation is loaded, not waiting for any user action
-        checkAndSendAwayMessage(conversation.business_id, conversationId).catch(
-          (err) => console.error('Failed to send welcome message:', err)
-        )
-      }
-    }
-
-    // Send immediately when conversation is available - this happens when customer enters the chat
-    // Don't wait for any messages or user actions
-    if (conversation?.id && conversation?.business_id && conversationId) {
-      sendWelcomeMessage()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversation?.id, conversation?.business_id, conversationId]) // Run immediately when conversation loads
-
   // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
@@ -114,6 +90,14 @@ export default function ChatPage() {
       textareaRef.current.style.height = `${Math.min(scrollHeight, maxHeight)}px`
     }
   }, [message])
+
+  const maybeSendWelcomeMessage = () => {
+    if (!conversation?.business_id || !conversationId) return
+
+    checkAndSendAwayMessage(conversation.business_id, conversationId, {
+      onlyOnFirstCustomerMessage: true,
+    }).catch((err) => console.error('Failed to send welcome message:', err))
+  }
 
   const handleSend = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
@@ -129,6 +113,7 @@ export default function ChatPage() {
         image_url: null,
         reply_to_id: replyingTo || null,
       })
+      maybeSendWelcomeMessage()
       setMessage('')
       setReplyingTo(null)
 
@@ -336,9 +321,14 @@ export default function ChatPage() {
             <div className="text-gray-500 dark:text-[#8696a0] text-sm">Loading messages...</div>
           </div>
         ) : allMessages.length === 0 ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="text-center text-gray-500 dark:text-[#8696a0] text-sm">
-              No messages yet. Start the conversation!
+          <div className="flex items-center justify-center py-14 sm:py-20">
+            <div className="text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400">
+                <HiChatAlt2 className="text-3xl" />
+              </div>
+              <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-500 dark:text-gray-400">
+                Type your message here
+              </p>
             </div>
           </div>
         ) : (
@@ -658,6 +648,7 @@ export default function ChatPage() {
                 image_url: imageUrl,
                 reply_to_id: replyingTo || null,
               })
+              maybeSendWelcomeMessage()
               setReplyingTo(null)
               showSuccess('Image sent')
             } catch (err) {
@@ -686,4 +677,3 @@ export default function ChatPage() {
     </div>
   )
 }
-

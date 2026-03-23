@@ -171,18 +171,8 @@ export function useFindOrCreateConversation() {
         .single()
 
       if (error) throw error
-      
-      const newConversation = data as Conversation
-      
-      // Send welcome message for new conversation (non-blocking)
-      // Import dynamically to avoid circular dependencies
-      import('@/lib/utils/away-message').then(({ checkAndSendAwayMessage }) => {
-        checkAndSendAwayMessage(businessId, newConversation.id).catch(
-          (err) => console.error('Failed to send welcome message:', err)
-        )
-      })
-      
-      return newConversation
+
+      return data as Conversation
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['conversations'] })
@@ -309,4 +299,3 @@ export function useDeleteConversation() {
     },
   })
 }
-

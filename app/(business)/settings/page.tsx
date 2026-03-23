@@ -665,7 +665,7 @@ export default function SettingsPage() {
           <>
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Welcome Message</h1>
-              <p className="text-gray-600 dark:text-gray-400">Automatically send a welcome message when customers enter the chat</p>
+              <p className="text-gray-600 dark:text-gray-400">Automatically send a welcome message after a customer sends their first message</p>
             </div>
 
             <div className="bg-white rounded-xl border border-gray-200 dark:bg-gray-800 dark:border-gray-700 p-6 shadow-sm">
@@ -676,7 +676,7 @@ export default function SettingsPage() {
                       Enable Welcome Message
                     </label>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Automatically send this message once when a customer enters the chat (as a welcome message)
+                      Automatically send this message once after a customer sends their first message
                     </p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
@@ -703,7 +703,7 @@ export default function SettingsPage() {
                     className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-600 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all resize-none disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                    This message will be sent automatically once when a customer enters the chat or starts a new conversation (if enabled).
+                    This message will be sent automatically once, right after the customer's first message in a conversation (if enabled).
                   </p>
                 </div>
 

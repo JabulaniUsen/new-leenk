@@ -4,15 +4,18 @@ import { sendEmailNotification } from '@/lib/utils/send-notification'
 
 type Business = Database['public']['Tables']['businesses']['Row']
 type MessageInsert = Database['public']['Tables']['messages']['Insert']
+type CheckAndSendAwayMessageOptions = {
+  onlyOnFirstCustomerMessage?: boolean
+}
 
 /**
  * Check if welcome/away message should be sent and send it automatically
- * Sends once per conversation when customer enters the chat
- * Cost optimization: Only checks if message was ever sent in this conversation
+ * Sends once per conversation after the customer's first message (when requested)
  */
 export async function checkAndSendAwayMessage(
   businessId: string,
-  conversationId: string
+  conversationId: string,
+  options: CheckAndSendAwayMessageOptions = {}
 ): Promise<void> {
   const supabase = createClient()
 
@@ -33,12 +36,29 @@ export async function checkAndSendAwayMessage(
   if (!businessData.away_message_enabled || !businessData.away_message) {
     return
   }
-  
+
+  // Optional guard: only send after the first customer message in a conversation.
+  if (options.onlyOnFirstCustomerMessage) {
+    const { count: customerMessageCount, error: customerCountError } = await supabase
+      .from('messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('conversation_id', conversationId)
+      .eq('sender_type', 'customer')
+
+    if (customerCountError) {
+      console.error('Failed to check customer message count:', customerCountError)
+      return
+    }
+
+    if (customerMessageCount !== 1) {
+      return
+    }
+  }
+
   const awayMessage = businessData.away_message
 
   // Check if this specific away message was already sent in this conversation
-  // This ensures it only sends once per conversation as a welcome message
-  // The check happens when customer enters the chat, not when they send a message
+  // This ensures we don't send duplicate welcome messages
   const { data: existingAwayMessage, error: checkError } = await supabase
     .from('messages')
     .select('id')
@@ -49,7 +69,6 @@ export async function checkAndSendAwayMessage(
     .limit(1)
     .maybeSingle()
 
-  // Don't send if this exact away message was already sent in this conversation
   // maybeSingle() returns null if no row found, so we check for data existence
   if (existingAwayMessage && !checkError) {
     return
@@ -109,4 +128,3 @@ export async function checkAndSendAwayMessage(
     }
   }
 }
-
