@@ -47,6 +47,7 @@ export const HEADER_STYLE_OPTIONS = [
 
 export const CHAT_BG_OPTIONS = [
   { label: 'Plain', value: 'plain' },
+  { label: 'Solid', value: 'solid' },
   { label: 'Subtle Dots', value: 'dots' },
   { label: 'Light Grid', value: 'grid' },
 ] as const
@@ -83,8 +84,8 @@ export function normalizeHeaderStyle(value: string | null | undefined): 'solid' 
   return value === 'gradient' ? 'gradient' : 'solid'
 }
 
-export function normalizeChatBg(value: string | null | undefined): 'plain' | 'dots' | 'grid' {
-  if (value === 'dots' || value === 'grid') return value
+export function normalizeChatBg(value: string | null | undefined): 'plain' | 'solid' | 'dots' | 'grid' {
+  if (value === 'dots' || value === 'grid' || value === 'solid') return value
   return 'plain'
 }
 
@@ -124,10 +125,13 @@ export function getBorderRadiusPx(radius: 'sharp' | 'rounded' | 'pill'): string 
 }
 
 export function getChatBgStyle(
-  chatBg: 'plain' | 'dots' | 'grid',
+  chatBg: 'plain' | 'solid' | 'dots' | 'grid',
   secondaryColor: string
 ): CSSProperties {
   const base = hexToRgba(secondaryColor, 0.18)
+  if (chatBg === 'solid') {
+    return { backgroundColor: normalizeHexColor(secondaryColor, DEFAULT_SECONDARY_COLOR) }
+  }
   if (chatBg === 'dots') {
     return {
       backgroundColor: base,

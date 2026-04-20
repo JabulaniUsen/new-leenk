@@ -88,7 +88,7 @@ export default function SettingsPage() {
   const [themeFontSize, setThemeFontSize] = useState<'small' | 'normal' | 'large'>('normal')
   const [themeBorderRadius, setThemeBorderRadius] = useState<'sharp' | 'rounded' | 'pill'>('rounded')
   const [themeHeaderStyle, setThemeHeaderStyle] = useState<'solid' | 'gradient'>('solid')
-  const [themeChatBg, setThemeChatBg] = useState<'plain' | 'dots' | 'grid'>('plain')
+  const [themeChatBg, setThemeChatBg] = useState<'plain' | 'solid' | 'dots' | 'grid'>('plain')
 
   // Initialize form with business data
   useEffect(() => {
@@ -823,7 +823,7 @@ export default function SettingsPage() {
                             <button
                               key={option.value}
                               type="button"
-                              onClick={() => setThemeChatBg(option.value as 'plain' | 'dots' | 'grid')}
+                              onClick={() => setThemeChatBg(option.value as 'plain' | 'solid' | 'dots' | 'grid')}
                               className={`flex-1 py-2.5 text-xs font-medium rounded-lg border transition-all ${
                                 themeChatBg === option.value
                                   ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
