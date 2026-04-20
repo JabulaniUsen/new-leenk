@@ -23,6 +23,14 @@ export interface Database {
           phone: string | null
           address: string | null
           business_logo: string | null
+          theme_primary_color: string | null
+          theme_secondary_color: string | null
+          theme_font_family: string | null
+          theme_font_style: string | null
+          theme_font_size: string | null
+          theme_border_radius: string | null
+          theme_header_style: string | null
+          theme_chat_bg: string | null
           online: boolean
           away_message: string | null
           away_message_enabled: boolean
@@ -38,6 +46,14 @@ export interface Database {
           phone?: string | null
           address?: string | null
           business_logo?: string | null
+          theme_primary_color?: string | null
+          theme_secondary_color?: string | null
+          theme_font_family?: string | null
+          theme_font_style?: string | null
+          theme_font_size?: string | null
+          theme_border_radius?: string | null
+          theme_header_style?: string | null
+          theme_chat_bg?: string | null
           online?: boolean
           away_message?: string | null
           away_message_enabled?: boolean
@@ -53,6 +69,14 @@ export interface Database {
           phone?: string | null
           address?: string | null
           business_logo?: string | null
+          theme_primary_color?: string | null
+          theme_secondary_color?: string | null
+          theme_font_family?: string | null
+          theme_font_style?: string | null
+          theme_font_size?: string | null
+          theme_border_radius?: string | null
+          theme_header_style?: string | null
+          theme_chat_bg?: string | null
           online?: boolean
           away_message?: string | null
           away_message_enabled?: boolean
@@ -200,4 +224,3 @@ export type RealtimeConversationPayload = {
   new: Database['public']['Tables']['conversations']['Row']
   old: Database['public']['Tables']['conversations']['Row'] | null
 }
-

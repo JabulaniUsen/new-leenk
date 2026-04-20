@@ -33,7 +33,7 @@ export default function BusinessLayout({ children }: { children: React.ReactNode
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [activeSection, setActiveSection] = useState<string>('profile')
 
-  useEffect(() => {
+  const syncActiveSection = () => {
     if (pathname === '/settings') {
       const hash = typeof window !== 'undefined' ? window.location.hash : ''
       if (hash === '#broadcast') {
@@ -46,6 +46,12 @@ export default function BusinessLayout({ children }: { children: React.ReactNode
     } else if (pathname.startsWith('/dashboard')) {
       setActiveSection('users')
     }
+  }
+
+  useEffect(() => {
+    syncActiveSection()
+    window.addEventListener('hashchange', syncActiveSection)
+    return () => window.removeEventListener('hashchange', syncActiveSection)
   }, [pathname])
 
   const handleLogout = async () => {
@@ -129,7 +135,7 @@ export default function BusinessLayout({ children }: { children: React.ReactNode
                 href={item.href}
                 onClick={(e) => {
                   setSidebarOpen(false)
-                  // Ensure proper navigation for hash links
+                  setActiveSection(item.section)
                   if (item.href.includes('#')) {
                     e.preventDefault()
                     router.push(item.href)

@@ -8,10 +8,33 @@ import { useBusiness, useUpdateBusiness } from '@/lib/queries/businesses'
 import { useQueryClient } from '@tanstack/react-query'
 import { uploadImage } from '@/lib/utils/image-upload'
 import { getBusinessLogoUrl } from '@/lib/utils/storage'
-import { HiUser, HiUsers, HiSpeakerphone, HiCollection, HiLink, HiCamera, HiDocumentDuplicate, HiLocationMarker, HiPhone, HiOfficeBuilding, HiPaperAirplane, HiTrash, HiRefresh, HiPhotograph } from 'react-icons/hi'
+import { HiUser, HiUsers, HiSpeakerphone, HiCollection, HiLink, HiCamera, HiDocumentDuplicate, HiLocationMarker, HiPhone, HiOfficeBuilding, HiPaperAirplane, HiTrash, HiRefresh, HiPhotograph, HiColorSwatch } from 'react-icons/hi'
 import { useToast } from '@/lib/hooks/use-toast'
 import { ImageEditor } from '@/components/image-editor'
-import { ImagePreviewModal } from '@/components/image-preview-modal'
+import {
+  DEFAULT_PRIMARY_COLOR,
+  DEFAULT_SECONDARY_COLOR,
+  FONT_FAMILY_OPTIONS,
+  FONT_STYLE_OPTIONS,
+  FONT_SIZE_OPTIONS,
+  BORDER_RADIUS_OPTIONS,
+  HEADER_STYLE_OPTIONS,
+  CHAT_BG_OPTIONS,
+  getBusinessThemeValues,
+  hexToRgba,
+  normalizeHexColor,
+  normalizeFontFamily,
+  normalizeFontStyle,
+  normalizeFontSize,
+  normalizeBorderRadius,
+  normalizeHeaderStyle,
+  normalizeChatBg,
+  getGoogleFontUrl,
+  getFontSizePx,
+  getBorderRadiusPx,
+  getChatBgStyle,
+  getHeaderStyle,
+} from '@/lib/utils/business-theme'
 
 // Helper function to get initials from name or email
 function getInitials(name: string | null, email: string): string {
@@ -40,9 +63,11 @@ export default function SettingsPage() {
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
   const [saving, setSaving] = useState(false)
+  const [savingAppearance, setSavingAppearance] = useState(false)
   const [copied, setCopied] = useState(false)
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const logoInputRef = useRef<HTMLInputElement>(null)
+  const [activeTab, setActiveTab] = useState('profile')
   
   // Broadcast message state
   const [broadcastContent, setBroadcastContent] = useState('')
@@ -56,6 +81,14 @@ export default function SettingsPage() {
   const [awayMessage, setAwayMessage] = useState('')
   const [awayMessageEnabled, setAwayMessageEnabled] = useState(false)
   const [savingAwayMessage, setSavingAwayMessage] = useState(false)
+  const [themePrimaryColor, setThemePrimaryColor] = useState(DEFAULT_PRIMARY_COLOR)
+  const [themeSecondaryColor, setThemeSecondaryColor] = useState(DEFAULT_SECONDARY_COLOR)
+  const [themeFontFamily, setThemeFontFamily] = useState<string>(FONT_FAMILY_OPTIONS[0].value)
+  const [themeFontStyle, setThemeFontStyle] = useState<'normal' | 'italic'>(FONT_STYLE_OPTIONS[0].value)
+  const [themeFontSize, setThemeFontSize] = useState<'small' | 'normal' | 'large'>('normal')
+  const [themeBorderRadius, setThemeBorderRadius] = useState<'sharp' | 'rounded' | 'pill'>('rounded')
+  const [themeHeaderStyle, setThemeHeaderStyle] = useState<'solid' | 'gradient'>('solid')
+  const [themeChatBg, setThemeChatBg] = useState<'plain' | 'dots' | 'grid'>('plain')
 
   // Initialize form with business data
   useEffect(() => {
@@ -65,8 +98,46 @@ export default function SettingsPage() {
       setAddress(business.address || '')
       setAwayMessage(business.away_message || '')
       setAwayMessageEnabled(business.away_message_enabled || false)
+      const themeValues = getBusinessThemeValues(business)
+      setThemePrimaryColor(themeValues.primaryColor)
+      setThemeSecondaryColor(themeValues.secondaryColor)
+      setThemeFontFamily(themeValues.fontFamily)
+      setThemeFontStyle(themeValues.fontStyle)
+      setThemeFontSize(themeValues.fontSize)
+      setThemeBorderRadius(themeValues.borderRadius)
+      setThemeHeaderStyle(themeValues.headerStyle)
+      setThemeChatBg(themeValues.chatBg)
     }
   }, [business])
+
+  useEffect(() => {
+    const hash = window.location.hash
+    if (hash === '#appearance') {
+      setActiveTab('appearance')
+    } else if (hash === '#broadcast') {
+      setActiveTab('broadcast')
+    } else if (hash === '#away') {
+      setActiveTab('away')
+    } else {
+      setActiveTab('profile')
+    }
+
+    const handleHashChange = () => {
+      const newHash = window.location.hash
+      if (newHash === '#appearance') {
+        setActiveTab('appearance')
+      } else if (newHash === '#broadcast') {
+        setActiveTab('broadcast')
+      } else if (newHash === '#away') {
+        setActiveTab('away')
+      } else {
+        setActiveTab('profile')
+      }
+    }
+
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [])
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -85,6 +156,45 @@ export default function SettingsPage() {
       showError('Failed to save settings. Please try again.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  // Load Google Font for preview when font family changes
+  useEffect(() => {
+    const url = getGoogleFontUrl(themeFontFamily)
+    if (!url) return
+    const id = 'preview-google-font'
+    const existing = document.getElementById(id)
+    if (existing) existing.remove()
+    const link = document.createElement('link')
+    link.id = id
+    link.rel = 'stylesheet'
+    link.href = url
+    document.head.appendChild(link)
+  }, [themeFontFamily])
+
+  const handleSaveAppearance = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!business) return
+
+    setSavingAppearance(true)
+    try {
+      await updateBusiness.mutateAsync({
+        theme_primary_color: normalizeHexColor(themePrimaryColor, DEFAULT_PRIMARY_COLOR),
+        theme_secondary_color: normalizeHexColor(themeSecondaryColor, DEFAULT_SECONDARY_COLOR),
+        theme_font_family: normalizeFontFamily(themeFontFamily),
+        theme_font_style: normalizeFontStyle(themeFontStyle),
+        theme_font_size: normalizeFontSize(themeFontSize),
+        theme_border_radius: normalizeBorderRadius(themeBorderRadius),
+        theme_header_style: normalizeHeaderStyle(themeHeaderStyle),
+        theme_chat_bg: normalizeChatBg(themeChatBg),
+      })
+      showSuccess('Appearance settings saved successfully!')
+    } catch (err) {
+      console.error('Failed to save appearance settings:', err)
+      showError('Failed to save appearance settings. Please try again.')
+    } finally {
+      setSavingAppearance(false)
     }
   }
 
@@ -272,33 +382,6 @@ export default function SettingsPage() {
   const initials = getInitials(business.business_name, business.email)
   const logoUrl = getBusinessLogoUrl(business.business_logo)
 
-  const [activeTab, setActiveTab] = useState('profile')
-
-  useEffect(() => {
-    const hash = window.location.hash
-    if (hash === '#broadcast') {
-      setActiveTab('broadcast')
-    } else if (hash === '#away') {
-      setActiveTab('away')
-    } else {
-      setActiveTab('profile')
-    }
-
-    const handleHashChange = () => {
-      const newHash = window.location.hash
-      if (newHash === '#broadcast') {
-        setActiveTab('broadcast')
-      } else if (newHash === '#away') {
-        setActiveTab('away')
-      } else {
-        setActiveTab('profile')
-      }
-    }
-
-    window.addEventListener('hashchange', handleHashChange)
-    return () => window.removeEventListener('hashchange', handleHashChange)
-  }, [])
-
   return (
     <div className="min-h-full bg-gray-50 dark:bg-gray-900">
       {/* Navigation Bar */}
@@ -336,6 +419,21 @@ export default function SettingsPage() {
           >
             <HiSpeakerphone className="text-lg" />
             <span className="hidden sm:inline">Broadcast Message</span>
+          </Link>
+          <Link
+            href="/settings#appearance"
+            onClick={(e) => {
+              e.preventDefault()
+              router.push('/settings#appearance')
+            }}
+            className={`flex items-center gap-2 text-sm whitespace-nowrap pb-2 -mb-3 transition-colors ${
+              activeTab === 'appearance'
+                ? 'text-primary-600 dark:text-primary-400 font-semibold border-b-2 border-primary-600 dark:border-primary-400'
+                : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+            }`}
+          >
+            <HiColorSwatch className="text-lg" />
+            <span className="hidden sm:inline">Appearance</span>
           </Link>
           <Link
             href="/settings#away"
@@ -540,6 +638,299 @@ export default function SettingsPage() {
                 <span>Logout</span>
                 <span>→</span>
               </Link>
+            </div>
+          </>
+        )}
+
+        {/* Appearance Section */}
+        {activeTab === 'appearance' && (
+          <>
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Appearance</h1>
+              <p className="text-gray-600 dark:text-gray-400">Customize your chat page — colors, fonts, bubble shapes, and more</p>
+            </div>
+
+            <div className="space-y-6">
+              <div className="bg-white rounded-xl border border-gray-200 dark:bg-gray-800 dark:border-gray-700 p-6 shadow-sm">
+                <form onSubmit={handleSaveAppearance} className="space-y-8">
+
+                  {/* Colors */}
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-4">Colors</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                          Primary Color
+                        </label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="color"
+                            value={themePrimaryColor}
+                            onChange={(e) => setThemePrimaryColor(e.target.value)}
+                            className="h-11 w-14 rounded border border-gray-300 dark:border-gray-600 cursor-pointer bg-transparent"
+                          />
+                          <input
+                            type="text"
+                            value={themePrimaryColor}
+                            onChange={(e) => setThemePrimaryColor(e.target.value)}
+                            className="flex-1 rounded-lg border border-gray-300 px-3 py-2.5 text-gray-700 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            placeholder="#9333ea"
+                          />
+                        </div>
+                        <p className="mt-1.5 text-xs text-gray-400">Header, buttons, and outgoing bubble color</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                          Secondary Color
+                        </label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="color"
+                            value={themeSecondaryColor}
+                            onChange={(e) => setThemeSecondaryColor(e.target.value)}
+                            className="h-11 w-14 rounded border border-gray-300 dark:border-gray-600 cursor-pointer bg-transparent"
+                          />
+                          <input
+                            type="text"
+                            value={themeSecondaryColor}
+                            onChange={(e) => setThemeSecondaryColor(e.target.value)}
+                            className="flex-1 rounded-lg border border-gray-300 px-3 py-2.5 text-gray-700 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            placeholder="#f3e8ff"
+                          />
+                        </div>
+                        <p className="mt-1.5 text-xs text-gray-400">Incoming bubble and background tint</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Typography */}
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-4">Typography</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                      <div className="sm:col-span-1">
+                        <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                          Font Family
+                        </label>
+                        <select
+                          value={themeFontFamily}
+                          onChange={(e) => setThemeFontFamily(e.target.value)}
+                          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-700 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        >
+                          <optgroup label="System fonts">
+                            {FONT_FAMILY_OPTIONS.filter((f) => !f.googleFont).map((option) => (
+                              <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
+                          </optgroup>
+                          <optgroup label="Google Fonts">
+                            {FONT_FAMILY_OPTIONS.filter((f) => f.googleFont).map((option) => (
+                              <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
+                          </optgroup>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                          Font Style
+                        </label>
+                        <select
+                          value={themeFontStyle}
+                          onChange={(e) => setThemeFontStyle(e.target.value as 'normal' | 'italic')}
+                          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-700 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        >
+                          {FONT_STYLE_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                          Font Size
+                        </label>
+                        <select
+                          value={themeFontSize}
+                          onChange={(e) => setThemeFontSize(e.target.value as 'small' | 'normal' | 'large')}
+                          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-700 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        >
+                          {FONT_SIZE_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* UI Style */}
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-4">UI Style</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                          Bubble Shape
+                        </label>
+                        <div className="flex gap-2">
+                          {BORDER_RADIUS_OPTIONS.map((option) => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => setThemeBorderRadius(option.value as 'sharp' | 'rounded' | 'pill')}
+                              className={`flex-1 py-2.5 text-xs font-medium border transition-all ${
+                                themeBorderRadius === option.value
+                                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
+                                  : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-400'
+                              }`}
+                              style={{
+                                borderRadius:
+                                  option.value === 'sharp' ? '4px' : option.value === 'pill' ? '999px' : '10px',
+                              }}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                          Header Style
+                        </label>
+                        <div className="flex gap-2">
+                          {HEADER_STYLE_OPTIONS.map((option) => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => setThemeHeaderStyle(option.value as 'solid' | 'gradient')}
+                              className={`flex-1 py-2.5 text-xs font-medium rounded-lg border transition-all ${
+                                themeHeaderStyle === option.value
+                                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
+                                  : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-400'
+                              }`}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                          Chat Background
+                        </label>
+                        <div className="flex gap-2">
+                          {CHAT_BG_OPTIONS.map((option) => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => setThemeChatBg(option.value as 'plain' | 'dots' | 'grid')}
+                              className={`flex-1 py-2.5 text-xs font-medium rounded-lg border transition-all ${
+                                themeChatBg === option.value
+                                  ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
+                                  : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-400'
+                              }`}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={savingAppearance}
+                      className="flex items-center gap-2 px-6 py-3 rounded-lg bg-primary-600 text-white font-semibold hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md shadow-primary-600/20"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-white"></span>
+                      <span>{savingAppearance ? 'Saving...' : 'Save Appearance'}</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* Live Preview */}
+              <div className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800 overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Live Preview</p>
+                  <p className="text-xs text-gray-400 mt-0.5">This is how your customers will see the chat page</p>
+                </div>
+                {/* Simulated phone frame */}
+                <div className="p-4">
+                  <div
+                    className="mx-auto overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg"
+                    style={{ maxWidth: 340, fontFamily: normalizeFontFamily(themeFontFamily), fontStyle: normalizeFontStyle(themeFontStyle), fontSize: getFontSizePx(themeFontSize) }}
+                  >
+                    {/* Header */}
+                    <div
+                      className="flex items-center gap-2 px-4 py-3"
+                      style={getHeaderStyle(themeHeaderStyle, normalizeHexColor(themePrimaryColor, DEFAULT_PRIMARY_COLOR))}
+                    >
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold" style={{ backgroundColor: 'rgba(255,255,255,0.25)', color: '#fff' }}>
+                        {business.business_name ? business.business_name.slice(0, 2).toUpperCase() : 'BZ'}
+                      </div>
+                      <div>
+                        <p className="text-white text-sm font-medium leading-tight">{business.business_name || 'Your Business'}</p>
+                        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.75)' }}>Online</p>
+                      </div>
+                    </div>
+                    {/* Messages */}
+                    <div
+                      className="px-3 py-4 space-y-2.5 min-h-[140px]"
+                      style={getChatBgStyle(themeChatBg, normalizeHexColor(themeSecondaryColor, DEFAULT_SECONDARY_COLOR))}
+                    >
+                      <div className="flex justify-start">
+                        <div
+                          className="max-w-[75%] px-3 py-2 text-gray-900 shadow-sm"
+                          style={{
+                            backgroundColor: normalizeHexColor(themeSecondaryColor, DEFAULT_SECONDARY_COLOR),
+                            borderRadius: getBorderRadiusPx(themeBorderRadius),
+                          }}
+                        >
+                          Hi! How can I help you today?
+                        </div>
+                      </div>
+                      <div className="flex justify-end">
+                        <div
+                          className="max-w-[75%] px-3 py-2 text-white shadow-sm"
+                          style={{
+                            backgroundColor: normalizeHexColor(themePrimaryColor, DEFAULT_PRIMARY_COLOR),
+                            borderRadius: getBorderRadiusPx(themeBorderRadius),
+                          }}
+                        >
+                          I'd like to place an order.
+                        </div>
+                      </div>
+                      <div className="flex justify-start">
+                        <div
+                          className="max-w-[75%] px-3 py-2 text-gray-900 shadow-sm"
+                          style={{
+                            backgroundColor: normalizeHexColor(themeSecondaryColor, DEFAULT_SECONDARY_COLOR),
+                            borderRadius: getBorderRadiusPx(themeBorderRadius),
+                          }}
+                        >
+                          Sure! Let me pull that up for you.
+                        </div>
+                      </div>
+                    </div>
+                    {/* Input bar */}
+                    <div
+                      className="flex items-center gap-2 px-3 py-2.5"
+                      style={{ backgroundColor: hexToRgba(normalizeHexColor(themeSecondaryColor, DEFAULT_SECONDARY_COLOR), 0.12), borderTop: `1px solid ${hexToRgba(normalizeHexColor(themePrimaryColor, DEFAULT_PRIMARY_COLOR), 0.2)}` }}
+                    >
+                      <div className="flex-1 rounded-2xl bg-white px-3 py-1.5 text-xs text-gray-400">Type a message...</div>
+                      <div
+                        className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs"
+                        style={{ backgroundColor: normalizeHexColor(themePrimaryColor, DEFAULT_PRIMARY_COLOR) }}
+                      >
+                        ➤
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </>
         )}

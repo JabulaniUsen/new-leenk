@@ -7,6 +7,7 @@ import { useFindOrCreateConversation, checkConversationExists } from '@/lib/quer
 import { getBusinessLogoUrl } from '@/lib/utils/storage'
 import type { Database } from '@/lib/types/database'
 import { useToast } from '@/lib/hooks/use-toast'
+import { getBusinessThemeStyle, getBusinessThemeValues, hexToRgba, getGoogleFontUrl, getFontSizePx } from '@/lib/utils/business-theme'
 
 type Business = Database['public']['Tables']['businesses']['Row']
 
@@ -30,6 +31,21 @@ export default function CustomerChatPage() {
   const [checking, setChecking] = useState(false)
   const findOrCreateConversation = useFindOrCreateConversation()
   const { showError } = useToast()
+
+  // Load Google Font when business theme is available
+  useEffect(() => {
+    if (!business) return
+    const url = getGoogleFontUrl(business.theme_font_family ?? '')
+    if (!url) return
+    const id = `gf-${business.id}`
+    if (!document.getElementById(id)) {
+      const link = document.createElement('link')
+      link.id = id
+      link.rel = 'stylesheet'
+      link.href = url
+      document.head.appendChild(link)
+    }
+  }, [business])
 
   // Save email to localStorage whenever it changes
   useEffect(() => {
@@ -133,9 +149,24 @@ export default function CustomerChatPage() {
     )
   }
 
+  const theme = getBusinessThemeValues(business)
+  const themeStyle = getBusinessThemeStyle(business)
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
-      <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-8 shadow-lg dark:bg-gray-800">
+    <div
+      className="flex min-h-screen items-center justify-center"
+      style={{ ...themeStyle, backgroundColor: hexToRgba(theme.secondaryColor, 0.35) }}
+    >
+      <div
+        className="w-full max-w-md space-y-8 rounded-2xl bg-white p-8"
+        style={{
+          fontFamily: theme.fontFamily,
+          fontStyle: theme.fontStyle,
+          fontSize: getFontSizePx(theme.fontSize),
+          borderTop: `4px solid ${theme.primaryColor}`,
+          boxShadow: `0 20px 60px ${hexToRgba(theme.primaryColor, 0.18)}`,
+        }}
+      >
         <div className="text-center">
           {getBusinessLogoUrl(business.business_logo) && (
             <img
@@ -177,7 +208,8 @@ export default function CustomerChatPage() {
                     localStorage.setItem('customer_email', newEmail.trim())
                   }
                 }}
-                className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:outline-none"
+                style={{ '--tw-ring-color': theme.primaryColor } as React.CSSProperties}
                 placeholder="your@email.com"
                 disabled={checking}
               />
@@ -186,7 +218,11 @@ export default function CustomerChatPage() {
               <button
                 type="submit"
                 disabled={checking || !email}
-                className="w-full rounded-md bg-primary-600 px-4 py-2 text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50"
+                className="w-full rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50"
+                style={{
+                  backgroundColor: theme.primaryColor,
+                  boxShadow: `0 6px 16px ${hexToRgba(theme.primaryColor, 0.35)}`,
+                }}
               >
                 {checking ? 'Checking...' : 'Continue'}
               </button>
@@ -234,7 +270,11 @@ export default function CustomerChatPage() {
               <button
                 type="submit"
                 disabled={loading || !name.trim()}
-                className="flex-1 rounded-md bg-primary-600 px-4 py-2 text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50"
+                className="flex-1 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50"
+                style={{
+                  backgroundColor: theme.primaryColor,
+                  boxShadow: `0 6px 16px ${hexToRgba(theme.primaryColor, 0.35)}`,
+                }}
               >
                 {loading ? 'Starting chat...' : 'Start Chat'}
               </button>
@@ -245,4 +285,3 @@ export default function CustomerChatPage() {
     </div>
   )
 }
-

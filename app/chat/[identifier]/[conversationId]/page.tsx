@@ -15,6 +15,16 @@ import { LinkPreview } from '@/components/link-preview'
 import { useToast } from '@/lib/hooks/use-toast'
 import { ImageEditor } from '@/components/image-editor'
 import { ImagePreviewModal } from '@/components/image-preview-modal'
+import {
+  getBusinessThemeStyle,
+  getBusinessThemeValues,
+  hexToRgba,
+  getGoogleFontUrl,
+  getFontSizePx,
+  getBorderRadiusPx,
+  getChatBgStyle,
+  getHeaderStyle,
+} from '@/lib/utils/business-theme'
 
 // Helper function to get initials from name or email
 function getInitials(name: string | null, email: string): string {
@@ -77,6 +87,21 @@ export default function ChatPage() {
     }
     loadBusiness()
   }, [identifier])
+
+  // Load Google Font when business theme is available
+  useEffect(() => {
+    if (!business) return
+    const url = getGoogleFontUrl(business.theme_font_family ?? '')
+    if (!url) return
+    const id = `gf-${business.id}`
+    if (!document.getElementById(id)) {
+      const link = document.createElement('link')
+      link.id = id
+      link.rel = 'stylesheet'
+      link.href = url
+      document.head.appendChild(link)
+    }
+  }, [business])
 
   // Subscribe to realtime messages
   useRealtimeMessages(conversationId)
@@ -276,36 +301,57 @@ export default function ChatPage() {
   const businessName = business?.business_name || 'Business'
   const businessEmail = business?.email || ''
   const initials = getInitials(business?.business_name || null, businessEmail)
+  const theme = getBusinessThemeValues(business)
+  const themeStyle = getBusinessThemeStyle(business)
 
   return (
-    <div className="flex h-[100vh] flex-col bg-white dark:bg-gray-900">
+    <div
+      className="flex h-[100vh] flex-col bg-white dark:bg-gray-900"
+      style={{
+        ...themeStyle,
+        fontFamily: theme.fontFamily,
+        fontStyle: theme.fontStyle,
+        fontSize: getFontSizePx(theme.fontSize),
+      }}
+    >
       {/* Header */}
-      <header className="border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
+      <header className="px-4 py-3" style={getHeaderStyle(theme.headerStyle, theme.primaryColor)}>
         <div className="flex items-center gap-3">
           <button
             onClick={() => window.history.back()}
-            className="flex-shrink-0 rounded-full p-2 text-gray-600 hover:bg-gray-100 active:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors"
+            className="flex-shrink-0 rounded-full p-2 transition-colors"
+            style={{ color: 'rgba(255,255,255,0.85)' }}
+            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.15)')}
+            onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
           >
             <HiArrowLeft className="text-xl" />
           </button>
           {/* Avatar */}
-          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center text-white text-sm font-medium">
+          <div
+            className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium"
+            style={{ backgroundColor: 'rgba(255,255,255,0.25)', color: '#fff' }}
+          >
             {initials}
           </div>
           {/* Name and Email */}
           <div className="flex-1 min-w-0">
             <div className="flex flex-col">
-              <h1 className="text-base font-medium text-gray-900 dark:text-white truncate">
+              <h1 className="text-base font-medium text-white truncate">
                 {businessName}
               </h1>
               <div className="flex items-center gap-1">
-                <p className="text-xs text-gray-500 dark:text-[#8696a0]">Online</p>
-                <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.75)' }}>Online</p>
+                <div className="w-2 h-2 rounded-full bg-green-300"></div>
               </div>
             </div>
           </div>
           {/* Menu */}
-          <button className="flex-shrink-0 rounded-full p-2 text-gray-600 hover:bg-gray-100 active:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors">
+          <button
+            className="flex-shrink-0 rounded-full p-2 transition-colors"
+            style={{ color: 'rgba(255,255,255,0.85)' }}
+            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.15)')}
+            onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+          >
             <HiDotsVertical className="text-xl" />
           </button>
         </div>
@@ -314,7 +360,8 @@ export default function ChatPage() {
       {/* Messages */}
       <div
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto px-2 py-3 sm:px-4 bg-white dark:bg-gray-900"
+        className="flex-1 overflow-y-auto px-2 py-3 sm:px-4"
+        style={getChatBgStyle(theme.chatBg, theme.secondaryColor)}
       >
         {messagesQuery.isLoading ? (
           <div className="flex items-center justify-center py-8">
@@ -323,7 +370,13 @@ export default function ChatPage() {
         ) : allMessages.length === 0 ? (
           <div className="flex items-center justify-center py-14 sm:py-20">
             <div className="text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400">
+              <div
+                className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full"
+                style={{
+                  backgroundColor: hexToRgba(theme.primaryColor, 0.16),
+                  color: theme.primaryColor,
+                }}
+              >
                 <HiChatAlt2 className="text-3xl" />
               </div>
               <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-500 dark:text-gray-400">
@@ -355,7 +408,8 @@ export default function ChatPage() {
                         <div className="mt-2 sm:mt-3 flex gap-2">
                           <button
                             onClick={() => handleSaveEdit(msg.id)}
-                            className="flex-1 rounded-xl bg-primary-600 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white hover:bg-primary-700 active:bg-primary-800 transition-colors"
+                            className="flex-1 rounded-xl px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white transition-colors"
+                            style={{ backgroundColor: theme.primaryColor }}
                           >
                             Save
                           </button>
@@ -376,10 +430,12 @@ export default function ChatPage() {
                         onTouchStart={(e) => handleLongPressStart(e, msg.id, isCustomer)}
                         onTouchEnd={handleLongPressEnd}
                         onTouchMove={handleLongPressEnd}
-                        className={`rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 select-none ${isCustomer
-                          ? 'bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-white'
-                          : 'bg-[#dcf8c6] text-gray-900'
-                          }`}
+                        className="px-2.5 sm:px-3 py-1.5 sm:py-2 select-none"
+                        style={
+                          isCustomer
+                            ? { backgroundColor: 'rgba(255,255,255,0.92)', color: '#1f2937', borderRadius: getBorderRadiusPx(theme.borderRadius) }
+                            : { backgroundColor: theme.secondaryColor, color: '#1f2937', borderRadius: getBorderRadiusPx(theme.borderRadius) }
+                        }
                       >
                         {replyMessage && (
                           <div className={`mb-1 sm:mb-1.5 rounded-lg border-l-2 pl-1.5 sm:pl-2 pr-1 sm:pr-1.5 py-0.5 sm:py-1 text-[10px] sm:text-xs ${isCustomer
@@ -558,12 +614,19 @@ export default function ChatPage() {
       {/* Input */}
       <form
         onSubmit={handleSend}
-        className="border-t border-gray-200 bg-white px-3 py-3 dark:border-gray-700 dark:bg-gray-800 sm:px-4"
+        className="px-3 py-3 sm:px-4"
+        style={{
+          backgroundColor: hexToRgba(theme.secondaryColor, 0.12),
+          borderTop: `1px solid ${hexToRgba(theme.primaryColor, 0.2)}`,
+        }}
       >
         {replyingTo && (() => {
           const replyMsg = getReplyMessage(replyingTo)
           return replyMsg ? (
-            <div className="mb-2 flex items-center justify-between rounded-lg bg-gray-100/80 p-2 dark:bg-[#111b21] border-l-2 border-primary-500">
+            <div
+              className="mb-2 flex items-center justify-between rounded-lg bg-gray-100/80 p-2 dark:bg-[#111b21] border-l-2"
+              style={{ borderColor: theme.primaryColor }}
+            >
               <div className="flex-1 min-w-0">
                 <div className="text-xs font-medium text-gray-700 dark:text-[#e9edef] mb-0.5">
                   Replying to {replyMsg.sender_type === 'customer' ? 'yourself' : 'business'}
@@ -598,7 +661,8 @@ export default function ChatPage() {
               fileInputRef.current?.click()
             }}
             disabled={uploadingImage || sending}
-            className="flex-shrink-0 rounded-full p-2.5 text-gray-500 hover:bg-gray-100 active:bg-gray-200 dark:text-[#8696a0] dark:hover:bg-[#111b21] disabled:opacity-50 transition-colors mb-1"
+            className="flex-shrink-0 rounded-full p-2.5 disabled:opacity-50 transition-colors mb-1"
+            style={{ color: theme.primaryColor }}
           >
             {uploadingImage ? (
               <span className="text-xs">...</span>
@@ -612,15 +676,16 @@ export default function ChatPage() {
             onChange={(e) => setMessage(e.target.value)}
             placeholder={replyingTo ? "Type your reply..." : "Type a message..."}
             rows={1}
-            className="flex-1 rounded-2xl border-0 bg-gray-100 px-4 py-2.5 text-sm text-gray-600 focus:outline-none focus:ring-0 dark:bg-[#2a3942] dark:text-[#e9edef] dark:placeholder:text-[#8696a0] disabled:opacity-50 resize-none overflow-y-auto min-h-[44px] max-h-[120px]"
+            className="flex-1 rounded-2xl border-0 px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-0 disabled:opacity-50 resize-none overflow-y-auto min-h-[44px] max-h-[120px]"
             disabled={sending || uploadingImage}
-            style={{ height: 'auto' }}
+            style={{ height: 'auto', backgroundColor: 'rgba(255,255,255,0.85)' }}
           />
           <button
             type="button"
             onClick={() => handleSend()}
             disabled={!message.trim() || sending || uploadingImage}
-            className="flex-shrink-0 rounded-full bg-primary-600 p-2.5 text-white hover:bg-primary-700 active:bg-primary-800 focus:outline-none disabled:opacity-50 transition-colors mb-1"
+            className="flex-shrink-0 rounded-full p-2.5 text-white focus:outline-none disabled:opacity-50 transition-colors mb-1"
+            style={{ backgroundColor: theme.primaryColor }}
           >
             {sending ? (
               <span className="text-xs">...</span>
