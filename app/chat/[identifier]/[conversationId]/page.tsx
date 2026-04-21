@@ -661,13 +661,13 @@ export default function ChatPage() {
               fileInputRef.current?.click()
             }}
             disabled={uploadingImage || sending}
-            className="flex-shrink-0 rounded-full p-2.5 disabled:opacity-50 transition-colors mb-1"
+            className="flex-shrink-0 rounded-full p-3 disabled:opacity-50 transition-colors mb-1"
             style={{ color: theme.primaryColor }}
           >
             {uploadingImage ? (
-              <span className="text-xs">...</span>
+              <span className="text-sm">...</span>
             ) : (
-              <HiPhotograph className="text-lg" />
+              <HiPhotograph className="text-2xl" />
             )}
           </button>
           <textarea
