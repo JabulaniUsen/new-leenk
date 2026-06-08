@@ -15,8 +15,20 @@ self.addEventListener('install', (event) => {
   )
 })
 
-// Fetch event - serve from cache, fallback to network
+// Fetch event - keep app pages and Next.js assets fresh.
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url)
+
+  if (
+    event.request.mode === 'navigate' ||
+    url.pathname.startsWith('/_next/') ||
+    url.pathname.endsWith('.js') ||
+    url.pathname.endsWith('.css')
+  ) {
+    event.respondWith(fetch(event.request))
+    return
+  }
+
   event.respondWith(
     caches.match(event.request).then((response) => {
       return response || fetch(event.request)
@@ -38,4 +50,3 @@ self.addEventListener('activate', (event) => {
     })
   )
 })
-

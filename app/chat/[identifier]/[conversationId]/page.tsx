@@ -15,6 +15,7 @@ import { LinkPreview } from '@/components/link-preview'
 import { useToast } from '@/lib/hooks/use-toast'
 import { ImageEditor } from '@/components/image-editor'
 import { ImagePreviewModal } from '@/components/image-preview-modal'
+import { CustomerAdDisplay } from '@/components/customer-ad-display'
 import {
   getBusinessThemeStyle,
   getBusinessThemeValues,
@@ -739,6 +740,7 @@ export default function ChatPage() {
           onClose={() => setPreviewImageUrl(null)}
         />
       )}
+      <CustomerAdDisplay />
     </div>
   )
 }

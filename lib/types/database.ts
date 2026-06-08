@@ -178,6 +178,56 @@ export interface Database {
           created_at?: string
         }
       }
+      ads: {
+        Row: {
+          id: string
+          title: string
+          description: string | null
+          image_url: string
+          video_url: string | null
+          target_url: string | null
+          placement: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
+          duration_seconds: number
+          sort_order: number
+          active: boolean
+          starts_at: string | null
+          ends_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description?: string | null
+          image_url: string
+          video_url?: string | null
+          target_url?: string | null
+          placement?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
+          duration_seconds?: number
+          sort_order?: number
+          active?: boolean
+          starts_at?: string | null
+          ends_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string | null
+          image_url?: string
+          video_url?: string | null
+          target_url?: string | null
+          placement?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
+          duration_seconds?: number
+          sort_order?: number
+          active?: boolean
+          starts_at?: string | null
+          ends_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

@@ -8,6 +8,7 @@ import { getBusinessLogoUrl } from '@/lib/utils/storage'
 import type { Database } from '@/lib/types/database'
 import { useToast } from '@/lib/hooks/use-toast'
 import { getBusinessThemeStyle, getBusinessThemeValues, hexToRgba, getGoogleFontUrl, getFontSizePx } from '@/lib/utils/business-theme'
+import { CustomerAdDisplay } from '@/components/customer-ad-display'
 
 type Business = Database['public']['Tables']['businesses']['Row']
 
@@ -282,6 +283,7 @@ export default function CustomerChatPage() {
           </form>
         )}
       </div>
+      <CustomerAdDisplay />
     </div>
   )
 }
